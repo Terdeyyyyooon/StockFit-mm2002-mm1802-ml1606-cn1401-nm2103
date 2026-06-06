@@ -2,24 +2,37 @@
   "name": "StockFit",
   "short_name": "StockFit",
   "description": "Gestion de stock et revente de vêtements",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0f0f13",
   "theme_color": "#00e5c0",
   "orientation": "portrait-primary",
+  "lang": "fr",
   "icons": [
     {
-      "src": "icône-192.png",
+      "src": "ic%C3%B4ne-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "icône-512.png",
+      "src": "ic%C3%B4ne-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "ic%C3%B4ne-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "ic%C3%B4ne-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
