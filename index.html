@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>StockFit</title>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- PWA iOS / Android -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StockFit">
+<meta name="application-name" content="StockFit">
+<meta name="theme-color" content="#00e5c0">
+<meta name="msapplication-TileColor" content="#0f0f13">
+
+<!-- Icônes -->
+<link rel="icon" type="image/png" sizes="192x192" href="icône-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icône-512.png">
+<link rel="apple-touch-icon" href="icône-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icône-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icône-512.png">
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f0f13;--surface:#1a1a22;--surface2:#23232f;--border:#2e2e3d;
+  --teal:#00e5c0;--teal-dim:rgba(0,229,192,0.12);
+  --rose:#ff4f6d;--rose-dim:rgba(255,79,109,0.12);
+  --gold:#f5c542;--gold-dim:rgba(245,197,66,0.12);
+  --violet:#a78bfa;--violet-dim:rgba(167,139,250,0.12);
+  --blue:#38bdf8;--blue-dim:rgba(56,189,248,0.12);
+  --orange:#fb923c;--orange-dim:rgba(251,146,60,0.12);
+  --text:#f0f0f5;--muted:#7a7a95;--radius:16px;--sidebar:260px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+
+/* SYNC BAR */
+.sync-bar{position:fixed;top:0;left:0;right:0;height:3px;z-index:999;background:transparent;}
+.sync-bar.syncing{background:linear-gradient(90deg,var(--teal),var(--violet),var(--teal));background-size:200%;animation:syncAnim 1s linear infinite;}
+.sync-bar.error{background:var(--rose);}
+@keyframes syncAnim{0%{background-position:0%}100%{background-position:200%}}
+.sync-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:12px;color:var(--muted);z-index:998;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
+.sync-toast.show{display:block;}
+.sync-toast.ok{color:var(--teal);border-color:rgba(0,229,192,0.3);}
+.sync-toast.err{color:var(--rose);border-color:rgba(255,79,109,0.3);}
+
+/* LAYOUT */
+.app-layout{display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;padding:24px 16px;overflow-y:auto;}
+.sidebar-logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--teal);margin-bottom:4px;}
+.sidebar-sub{font-size:11px;color:var(--muted);margin-bottom:28px;}
+.sidebar-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px;margin-top:20px;padding-left:8px;}
+.sidebar-section:first-of-type{margin-top:0;}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;text-align:left;margin-bottom:2px;}
+.nav-btn:hover{background:var(--surface2);color:var(--text);}
+.nav-btn.active{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,229,192,0.2);}
+.nav-btn .nav-icon{font-size:16px;width:20px;text-align:center;}
+.nav-btn .nav-badge{margin-left:auto;background:var(--surface2);border-radius:10px;font-size:11px;padding:1px 7px;font-weight:700;}
+.nav-btn.active .nav-badge{background:rgba(0,229,192,0.2);}
+.nav-btn.laver.active{background:var(--blue-dim);color:var(--blue);border-color:rgba(56,189,248,0.2);}
+.nav-btn.laver.active .nav-badge{background:rgba(56,189,248,0.2);}
+.nav-btn.repasser.active{background:var(--orange-dim);color:var(--orange);border-color:rgba(251,146,60,0.2);}
+.nav-btn.repasser.active .nav-badge{background:rgba(251,146,60,0.2);}
+.nav-btn.defaut.active{background:var(--rose-dim);color:var(--rose);border-color:rgba(255,79,109,0.2);}
+.nav-btn.republier.active{background:var(--violet-dim);color:var(--violet);border-color:rgba(167,139,250,0.2);}
+.nav-btn.republier.active .nav-badge{background:rgba(167,139,250,0.2);}
+.sidebar-stats{margin-top:auto;background:var(--surface2);border-radius:12px;padding:14px;border:1px solid var(--border);}
+.sidebar-stat{margin-bottom:10px;}
+.sidebar-stat:last-child{margin-bottom:0;}
+.sidebar-stat .s-label{font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:0.5px;}
+.sidebar-stat .s-value{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-top:2px;}
+.sidebar-stat.achats .s-value{color:var(--rose);}
+.sidebar-stat.ventes .s-value{color:var(--gold);}
+.sidebar-stat.benef .s-value{color:var(--teal);}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.main-header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;}
+.main-header h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;flex:1;}
+.header-actions{display:flex;gap:10px;align-items:center;}
+.search-input{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 14px;outline:none;width:220px;transition:border-color 0.2s;}
+.search-input:focus{border-color:var(--teal);}
+.header-btn{padding:9px 16px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all 0.2s;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.header-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-dim);}
+.header-btn.pdf{border-color:var(--violet);color:var(--violet);}
+.header-btn.pdf:hover{background:var(--violet-dim);}
+.header-btn.add{background:var(--teal);border-color:var(--teal);color:#0f0f13;font-weight:700;}
+.header-btn.add:hover{opacity:0.9;}
+.main-content{padding:24px 28px;flex:1;}
+
+/* FILTERS */
+.filters-bar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-end;}
+.filter-group{display:flex;flex-direction:column;gap:4px;}
+.filter-group label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);}
+.filter-select{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 10px;outline:none;-webkit-appearance:none;cursor:pointer;min-width:110px;}
+.filter-select:focus{border-color:var(--teal);}
+.filter-price{display:flex;align-items:center;gap:6px;}
+.filter-price input{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 10px;outline:none;width:70px;}
+.filter-price span{color:var(--muted);font-size:12px;}
+.filter-reset-btn{padding:7px 12px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;align-self:flex-end;}
+.filter-reset-btn:hover{border-color:var(--rose);color:var(--rose);}
+.results-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-size:13px;color:var(--muted);}
+
+/* TABLE */
+.articles-table{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);}
+.articles-table th{background:var(--surface2);padding:12px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;}
+.articles-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+.articles-table tr:last-child td{border-bottom:none;}
+.articles-table tr:hover td{background:rgba(255,255,255,0.02);}
+.td-brand{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;}
+.td-desc{color:var(--muted);font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.td-cat{color:var(--violet);font-size:11px;font-weight:500;}
+.td-price{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;}
+.td-benef.pos{color:var(--teal);}
+.td-benef.neg{color:var(--rose);}
+.platform-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;background:var(--violet-dim);color:var(--violet);white-space:nowrap;}
+.statut-badges{display:flex;gap:4px;flex-wrap:wrap;}
+.statut-chip{font-size:10px;font-weight:600;padding:3px 7px;border-radius:20px;cursor:pointer;border:1.5px solid transparent;transition:all 0.2s;user-select:none;white-space:nowrap;}
+.statut-chip.laver{background:var(--blue-dim);color:var(--blue);border-color:rgba(56,189,248,0.3);}
+.statut-chip.repasser{background:var(--orange-dim);color:var(--orange);border-color:rgba(251,146,60,0.3);}
+.statut-chip.defaut{background:var(--rose-dim);color:var(--rose);border-color:rgba(255,79,109,0.3);}
+.statut-chip.inactive{background:var(--surface2);color:var(--muted);border-color:var(--border);opacity:0.4;}
+.statut-chip:hover{opacity:1 !important;}
+.badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;}
+.badge.stock{background:var(--gold-dim);color:var(--gold);}
+.badge.vendu{background:var(--teal-dim);color:var(--teal);}
+.sell-toggle-small{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+.toggle-switch-sm{width:36px;height:20px;background:var(--border);border-radius:10px;position:relative;transition:background 0.25s;flex-shrink:0;}
+.toggle-switch-sm::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform 0.25s;}
+.sell-toggle-small.sold .toggle-switch-sm{background:var(--teal);}
+.sell-toggle-small.sold .toggle-switch-sm::after{transform:translateX(16px);}
+.row-actions{display:flex;gap:6px;}
+.row-btn{padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.row-btn:hover{background:var(--surface2);}
+.row-btn.del:hover{border-color:var(--rose);color:var(--rose);}
+.row-btn.dup:hover{border-color:var(--gold);color:var(--gold);}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-state .emoji{font-size:48px;margin-bottom:12px;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:20px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;padding:28px 28px 36px;animation:fadeIn 0.2s ease;border:1px solid var(--border);margin:20px;}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.97)}to{opacity:1;transform:scale(1)}}
+.modal h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:20px;}
+.photo-picker{width:100%;height:130px;background:var(--surface2);border:2px dashed var(--border);border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;margin-bottom:18px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.photo-picker:hover{border-color:var(--teal);}
+.photo-picker span{font-size:28px;margin-bottom:5px;}
+.photo-picker p{font-size:12px;color:var(--muted);}
+.photo-picker img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.photo-picker input{display:none;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-group{margin-bottom:12px;position:relative;}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
+.form-group input,.form-group select{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;outline:none;transition:border-color 0.2s;-webkit-appearance:none;}
+.form-group input:focus,.form-group select:focus{border-color:var(--teal);}
+
+/* Autocomplete */
+.autocomplete-list{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1.5px solid var(--teal);border-radius:10px;z-index:500;max-height:160px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);margin-top:2px;}
+.autocomplete-item{padding:9px 12px;font-size:13px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);}
+.autocomplete-item:last-child{border-bottom:none;}
+.autocomplete-item:hover{background:var(--teal-dim);color:var(--teal);}
+
+/* Couleurs */
+.color-section{margin-bottom:14px;}
+.color-section>label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+.color-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.color-chip{padding:5px 11px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;font-weight:500;cursor:pointer;transition:all 0.15s;user-select:none;}
+.color-chip:hover{border-color:var(--teal);color:var(--teal);}
+.color-chip.selected{background:var(--teal-dim);border-color:var(--teal);color:var(--teal);font-weight:700;}
+
+/* Statuts */
+.statuts-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.statut-toggle{flex:1;min-width:90px;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;text-align:center;user-select:none;}
+.statut-toggle.on.laver{background:var(--blue-dim);color:var(--blue);border-color:var(--blue);}
+.statut-toggle.on.repasser{background:var(--orange-dim);color:var(--orange);border-color:var(--orange);}
+.statut-toggle.on.defaut{background:var(--rose-dim);color:var(--rose);border-color:var(--rose);}
+
+/* Calc */
+.calc-preview{background:var(--surface2);border-radius:var(--radius);padding:14px;margin-bottom:14px;border:1px solid var(--border);}
+.calc-title{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:10px;font-weight:600;}
+.calc-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(--muted);}
+.calc-row.total{border-top:1px solid var(--border);margin-top:6px;padding-top:9px;font-weight:700;font-size:15px;}
+.calc-row.total .pos{color:var(--teal);}
+.calc-row.total .neg{color:var(--rose);}
+.modal-btns{display:flex;gap:10px;margin-top:8px;}
+.btn-cancel{flex:1;padding:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;}
+.btn-save{flex:2;padding:12px;background:var(--teal);border:none;border-radius:12px;color:#0f0f13;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
+.sell-info{background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--muted);}
+.sell-info strong{color:var(--text);display:block;font-size:15px;margin-bottom:4px;}
+.republier-banner{background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--violet);}
+
+/* DASHBOARD */
+#dashboard-view{display:none;}
+.main-content.dash .desktop-filters,.main-content.dash .mobile-filter-panel,.main-content.dash .results-info,.main-content.dash .articles-table,.main-content.dash #cards-list{display:none !important;}
+.main-content.dash #dashboard-view{display:block;}
+.dash-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:16px;}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;}
+.dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+.dash-card .dc-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);font-weight:600;}
+.dash-card .dc-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;margin-top:8px;}
+.dash-card .dc-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.dash-card.stock .dc-value{color:var(--gold);}
+.dash-card.valeur .dc-value{color:var(--violet);}
+.dash-card.vendus .dc-value{color:var(--blue);}
+.dash-card.ca .dc-value{color:var(--gold);}
+.dash-card.benef .dc-value{color:var(--teal);}
+.dash-card.delai .dc-value{color:var(--orange);}
+
+/* MOBILE */
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .main{margin-left:0;}
+  .main-header{padding:12px 14px;flex-wrap:wrap;gap:8px;}
+  .main-header h2{font-size:16px;}
+  .search-input{width:100%;order:3;flex-basis:100%;}
+  .header-actions{gap:6px;}
+  .header-btn .btn-text{display:none;}
+  /* Mobile tabs — 2 lignes fixes, sans scroll horizontal */
+  .mobile-tabs{display:flex;flex-direction:column;gap:0;background:var(--surface);border-bottom:1px solid var(--border);}
+  .mobile-tabs-row{display:grid;gap:6px;padding:8px 10px;}
+  .mobile-tabs-row:first-child{grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);}
+  .mobile-tabs-row:last-child{grid-template-columns:1fr 1fr 1fr 1fr 1fr;}
+  .mobile-tab{padding:7px 4px;border:1.5px solid var(--border);border-radius:10px;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all 0.2s;text-align:center;width:100%;}
+  .mobile-tab.active{background:var(--teal-dim);border-color:var(--teal);color:var(--teal);}
+  .mobile-tab.laver.active{background:var(--blue-dim);border-color:var(--blue);color:var(--blue);}
+  .mobile-tab.repasser.active{background:var(--orange-dim);border-color:var(--orange);color:var(--orange);}
+  .mobile-tab.defaut.active{background:var(--rose-dim);border-color:var(--rose);color:var(--rose);}
+  .mobile-tab.republier.active{background:var(--violet-dim);border-color:var(--violet);color:var(--violet);}
+  .mobile-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);}
+  .mobile-stat{background:var(--surface2);border-radius:10px;padding:8px;text-align:center;}
+  .mobile-stat .m-label{font-size:9px;color:var(--muted);text-transform:uppercase;}
+  .mobile-stat .m-value{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-top:2px;}
+  .mobile-stat.achats .m-value{color:var(--rose);}
+  .mobile-stat.ventes .m-value{color:var(--gold);}
+  .mobile-stat.benef .m-value{color:var(--teal);}
+  .articles-table{display:none;}
+  .desktop-filters{display:none !important;}
+  .results-info{padding:0 14px;margin-bottom:8px;}
+  .main-content{padding:12px 14px 80px;}
+  .mobile-filter-panel{display:block;margin-bottom:10px;}
+  .mobile-filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px;}
+  .mobile-filter-grid select{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 10px;outline:none;-webkit-appearance:none;width:100%;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+  .card-inner{display:flex;}
+  .card-photo{width:78px;min-height:78px;background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;position:relative;}
+  .card-photo img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+  .card-body{flex:1;padding:10px 12px;min-width:0;}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;}
+  .card-brand{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;}
+  .card-desc{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .card-cat{font-size:10px;color:var(--violet);margin-top:2px;}
+  .card-prices{display:flex;gap:10px;margin-top:7px;flex-wrap:wrap;}
+  .price-item{font-size:10px;color:var(--muted);}
+  .price-item strong{display:block;font-size:13px;font-weight:600;color:var(--text);}
+  .price-item.benef strong{color:var(--teal);}
+  .price-item.perte strong{color:var(--rose);}
+  .card-platform{padding:6px 12px;border-top:1px solid var(--border);font-size:11px;color:var(--violet);background:var(--surface2);}
+  .card-statuts{display:flex;gap:4px;padding:7px 12px;flex-wrap:wrap;border-top:1px solid var(--border);background:var(--surface2);}
+  .card-sell{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-top:1px solid var(--border);cursor:pointer;user-select:none;}
+  .card-sell .sell-label{font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .card-sell.sold .sell-label{color:var(--teal);}
+  .card-actions{display:flex;border-top:1px solid var(--border);}
+  .card-actions button{flex:1;padding:9px;background:transparent;border:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;}
+  .card-actions button:not(:last-child){border-right:1px solid var(--border);}
+  .card-actions .btn-del{color:var(--rose);}
+  .card-actions .btn-dup{color:var(--gold);}
+  .modal-overlay{align-items:flex-end;}
+  .modal{border-radius:24px 24px 0 0;max-width:100%;margin:0;}
+  .autocomplete-list{position:fixed;left:14px;right:14px;max-height:200px;}
+}
+@media(min-width:769px){
+  .mobile-tabs,.mobile-stats,.mobile-filter-panel,.card{display:none;}
+  .desktop-filters{display:flex;}
+}
+</style>
+</head>
+<body>
+<div class="sync-bar" id="syncBar"></div>
+<div class="sync-toast" id="syncToast"></div>
+<div id="sync-journal" style="position:fixed;bottom:0;right:0;width:340px;max-height:160px;overflow-y:auto;background:rgba(10,10,20,0.92);color:#7effa0;font-size:11px;font-family:monospace;padding:8px 10px;z-index:9999;border-top-left-radius:10px;border:1px solid #2a2a3a;display:none;"></div>
+<button onclick="var j=document.getElementById('sync-journal');j.style.display=j.style.display==='none'?'block':'none'" style="position:fixed;bottom:8px;right:8px;z-index:10000;background:#1a1a2e;border:1px solid #3a3a5a;color:#7effa0;font-size:10px;padding:4px 8px;border-radius:6px;cursor:pointer;">📋 Sync</button>
+
+<div class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-logo">👗 StockFit</div>
+  <div class="sidebar-sub">Gestion articles & bénéfices</div>
+  <div class="sidebar-section">Vues</div>
+  <button class="nav-btn" onclick="setTab('dashboard')" id="nav-dashboard"><span class="nav-icon">📊</span> Tableau de bord</button>
+  <button class="nav-btn active" onclick="setTab('stock')" id="nav-stock"><span class="nav-icon">🏷️</span> En stock<span class="nav-badge" id="nb-stock">0</span></button>
+  <button class="nav-btn" onclick="setTab('vendu')" id="nav-vendu"><span class="nav-icon">✅</span> Vendus<span class="nav-badge" id="nb-vendu">0</span></button>
+  <button class="nav-btn" onclick="setTab('tout')" id="nav-tout"><span class="nav-icon">📋</span> Tout<span class="nav-badge" id="nb-tout">0</span></button>
+  <div class="sidebar-section">À traiter</div>
+  <button class="nav-btn laver" onclick="setTab('laver')" id="nav-laver"><span class="nav-icon">🧺</span> À laver<span class="nav-badge" id="nb-laver">0</span></button>
+  <button class="nav-btn repasser" onclick="setTab('repasser')" id="nav-repasser"><span class="nav-icon">🔥</span> À repasser<span class="nav-badge" id="nb-repasser">0</span></button>
+  <button class="nav-btn defaut" onclick="setTab('defaut')" id="nav-defaut"><span class="nav-icon">⚠️</span> Défaut<span class="nav-badge" id="nb-defaut">0</span></button>
+  <button class="nav-btn republier" onclick="setTab('republier')" id="nav-republier"><span class="nav-icon">🔄</span> À republier<span class="nav-badge" id="nb-republier">0</span></button>
+  <div class="sidebar-stats">
+    <div class="sidebar-stat achats"><div class="s-label">Total investi</div><div class="s-value" id="stat-achat">0 €</div></div>
+    <div class="sidebar-stat ventes"><div class="s-label">Total encaissé</div><div class="s-value" id="stat-vendu">0 €</div></div>
+    <div class="sidebar-stat benef"><div class="s-label">Bénéfice net</div><div class="s-value" id="stat-benef">0 €</div></div>
+  </div>
+  <div class="sidebar-section">Synchronisation</div>
+  <button class="nav-btn" onclick="forceSaveToCloud()" style="color:var(--teal)"><span class="nav-icon">☁️</span> Forcer sauvegarde</button>
+  <button class="nav-btn" onclick="forceLoadFromCloud()" style="color:var(--violet)"><span class="nav-icon">🔄</span> Restaurer depuis Google</button>
+  <button class="nav-btn" onclick="exportJSON()" style="color:var(--gold)"><span class="nav-icon">💾</span> Exporter JSON</button>
+</aside>
+
+<main class="main">
+  <div class="mobile-stats">
+    <div class="mobile-stat achats"><div class="m-label">Investi</div><div class="m-value" id="m-stat-achat">0 €</div></div>
+    <div class="mobile-stat ventes"><div class="m-label">Vendu</div><div class="m-value" id="m-stat-vendu">0 €</div></div>
+    <div class="mobile-stat benef"><div class="m-label">Bénéfice</div><div class="m-value" id="m-stat-benef">0 €</div></div>
+  </div>
+  <div class="mobile-tabs">
+    <div class="mobile-tabs-row">
+      <button class="mobile-tab active" onclick="setTab('stock')">📦 Stock</button>
+      <button class="mobile-tab" onclick="setTab('vendu')">✅ Vendus</button>
+      <button class="mobile-tab" onclick="setTab('dashboard')">📊 Tableau</button>
+    </div>
+    <div class="mobile-tabs-row">
+      <button class="mobile-tab" onclick="setTab('tout')">📋 Tout</button>
+      <button class="mobile-tab laver" onclick="setTab('laver')">🧺</button>
+      <button class="mobile-tab repasser" onclick="setTab('repasser')">🔥</button>
+      <button class="mobile-tab defaut" onclick="setTab('defaut')">⚠️</button>
+      <button class="mobile-tab republier" onclick="setTab('republier')">🔄</button>
+    </div>
+  </div>
+  <div class="main-header">
+    <h2 id="main-title">🏷️ En stock</h2>
+    <div class="header-actions">
+      <input type="text" class="search-input" id="search" placeholder="🔍 Rechercher partout..." oninput="renderAll()">
+      <button class="header-btn pdf" onclick="exportPDF()">🖨️ <span class="btn-text">PDF</span></button>
+      <button class="header-btn" onclick="exportComptaCSV()">📊 <span class="btn-text">Compta</span></button>
+      <button class="header-btn" onclick="exportStockCSV()">📦 <span class="btn-text">Stock</span></button>
+      <button class="header-btn add" onclick="openAddModal()">＋ <span class="btn-text">Ajouter</span></button>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="filters-bar desktop-filters">
+      <div class="filter-group"><label>Sexe</label>
+        <select class="filter-select" id="f-filter-sexe" onchange="renderAll()">
+          <option value="">Tous</option><option>Homme</option><option>Femme</option><option>Unisexe</option>
+          <option>Fille</option><option>Garçon</option><option>Bébé fille</option><option>Bébé garçon</option>
+          <option>Bébé unisexe</option><option>Autre</option>
+        </select>
+      </div>
+      <div class="filter-group"><label>Catégorie</label>
+        <select class="filter-select" id="f-filter-cat" onchange="renderAll()">
+          <option value="">Toutes</option><option>Jean</option><option>Pantalon</option><option>T-shirt</option>
+          <option>Sweat</option><option>Pull</option><option>Chemise</option><option>Veste</option>
+          <option>Short</option><option>Jupe</option><option>Sac</option><option>Sac à main</option>
+          <option>Sac à dos</option><option>Ceinture</option><option>Bonnet</option><option>Casquette</option>
+          <option>Chapeau</option><option>Écharpe</option><option>Gants</option><option>Portefeuille</option>
+          <option>Bijou</option><option>Lunettes</option><option>Chaussures</option><option>Autre</option>
+        </select>
+      </div>
+      <div class="filter-group"><label>Marque</label>
+        <select class="filter-select" id="f-filter-marque" onchange="renderAll()"><option value="">Toutes</option></select>
+      </div>
+      <div class="filter-group"><label>Lieu</label>
+        <select class="filter-select" id="f-filter-lieu" onchange="renderAll()"><option value="">Tous</option></select>
+      </div>
+      <div class="filter-group"><label>Plateforme</label>
+        <select class="filter-select" id="f-filter-plateforme" onchange="renderAll()"><option value="">Toutes</option></select>
+      </div>
+      <div class="filter-group"><label>Emplacement</label>
+        <select class="filter-select" id="f-filter-emplacement" onchange="renderAll()"><option value="">Tous</option></select>
+      </div>
+      <div class="filter-group"><label>Prix achat (€)</label>
+        <div class="filter-price">
+          <input type="number" id="f-prix-min" placeholder="Min" step="0.5" oninput="renderAll()">
+          <span>—</span>
+          <input type="number" id="f-prix-max" placeholder="Max" step="0.5" oninput="renderAll()">
+        </div>
+      </div>
+      <button class="filter-reset-btn" onclick="resetFilters()">✕ Réinitialiser</button>
+    </div>
+    <div class="mobile-filter-panel">
+      <div class="mobile-filter-grid">
+        <select id="mf-sexe" onchange="renderAll()">
+          <option value="">Sexe — Tous</option><option>Homme</option><option>Femme</option><option>Unisexe</option>
+          <option>Fille</option><option>Garçon</option><option>Bébé fille</option><option>Bébé garçon</option>
+          <option>Bébé unisexe</option><option>Autre</option>
+        </select>
+        <select id="mf-cat" onchange="renderAll()">
+          <option value="">Catégorie — Toutes</option><option>Jean</option><option>Pantalon</option><option>T-shirt</option>
+          <option>Sweat</option><option>Pull</option><option>Chemise</option><option>Veste</option>
+          <option>Short</option><option>Jupe</option><option>Sac</option><option>Sac à main</option>
+          <option>Sac à dos</option><option>Ceinture</option><option>Bonnet</option><option>Casquette</option>
+          <option>Chapeau</option><option>Écharpe</option><option>Gants</option><option>Portefeuille</option>
+          <option>Bijou</option><option>Lunettes</option><option>Chaussures</option><option>Autre</option>
+        </select>
+      </div>
+      <div class="mobile-filter-grid">
+        <select id="mf-plateforme" onchange="renderAll()"><option value="">Plateforme — Toutes</option></select>
+        <select id="mf-emplacement" onchange="renderAll()"><option value="">Emplacement — Tous</option></select>
+      </div>
+    </div>
+    <div class="results-info"><span id="results-count"></span></div>
+    <div id="dashboard-view"></div>
+    <table class="articles-table" id="articles-table">
+      <thead><tr>
+        <th>Marque / Taille</th><th>Description</th><th>Cat.</th><th>Sexe</th>
+        <th>Lieu achat</th><th>Emplacement</th><th>Achat</th><th>Affiché/Vendu</th>
+        <th>Bénéfice</th><th>Plateforme</th><th>Délai</th><th>Statuts</th><th>Vendu</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+    <div id="cards-list"></div>
+  </div>
+</main>
+</div>
+
+<!-- MODAL AJOUTER/MODIFIER -->
+<div class="modal-overlay" id="addModal">
+<div class="modal">
+  <h2 id="modal-title">Nouvel article</h2>
+  <label class="photo-picker" id="photoPicker" onclick="document.getElementById('photoInput').click()">
+    <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)">
+    <span>📷</span><p>Ajouter une photo</p>
+  </label>
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Marque</label>
+      <input type="text" id="f-marque" placeholder="ex: ADIDAS" autocomplete="off" oninput="showAC(this,'marque')">
+      <div class="autocomplete-list" id="ac-marque" style="display:none"></div>
+    </div>
+    <div class="form-group"><label>Taille</label><input type="text" id="f-taille" placeholder="ex: M, L, 38..."></div>
+  </div>
+  <div class="form-group"><label>Description</label><input type="text" id="f-desc" placeholder="ex: Jean bleu skinny Y2K"></div>
+  <div class="form-grid">
+    <div class="form-group"><label>Catégorie</label>
+      <select id="f-cat" onchange="toggleCatAutre()">
+        <option value="">— Choisir —</option><option>Jean</option><option>Pantalon</option><option>T-shirt</option>
+        <option>Sweat</option><option>Pull</option><option>Chemise</option><option>Veste</option>
+        <option>Short</option><option>Jupe</option><option>Sac</option><option>Sac à main</option>
+        <option>Sac à dos</option><option>Ceinture</option><option>Bonnet</option><option>Casquette</option>
+        <option>Chapeau</option><option>Écharpe</option><option>Gants</option><option>Portefeuille</option>
+        <option>Bijou</option><option>Lunettes</option><option>Chaussures</option><option>Autre</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Sexe</label>
+      <select id="f-sexe" onchange="toggleSexeAutre()">
+        <option>Homme</option><option>Femme</option><option>Unisexe</option>
+        <option>Fille</option><option>Garçon</option><option>Bébé fille</option>
+        <option>Bébé garçon</option><option>Bébé unisexe</option><option>Autre</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group" id="g-cat-autre" style="display:none">
+    <label>Catégorie personnalisée (facultatif)</label>
+    <input type="text" id="f-cat-autre" placeholder="ex: Peluche, Déco, Jouet...">
+  </div>
+  <div class="form-group" id="g-sexe-autre" style="display:none">
+    <label>Préciser le sexe (facultatif)</label>
+    <input type="text" id="f-sexe-autre" placeholder="Saisie libre...">
+  </div>
+  <div class="form-group">
+    <label>Lieu d'achat</label>
+    <input type="text" id="f-lieu" placeholder="ex: Ecosol Renaix" autocomplete="off" oninput="showAC(this,'lieu')">
+    <div class="autocomplete-list" id="ac-lieu" style="display:none"></div>
+  </div>
+  <div class="form-group">
+    <label>Emplacement</label>
+    <input type="text" id="f-emplacement" placeholder="ex: Portant A, PV3, Caisse 1..." autocomplete="off" oninput="showAC(this,'emplacement')">
+    <div class="autocomplete-list" id="ac-emplacement" style="display:none"></div>
+  </div>
+
+  <!-- COULEURS -->
+  <div class="color-section">
+    <label>Couleurs (plusieurs choix possibles)</label>
+    <div class="color-chips" id="cp-colors"></div>
+  </div>
+  <div class="form-group">
+    <label>Précision couleur (facultatif)</label>
+    <input type="text" id="f-couleur-prec" placeholder="ex: Bordeaux, Ocre, Moutarde, Kaki...">
+  </div>
+
+  <div class="form-grid">
+    <div class="form-group"><label>Prix achat (€)</label><input type="number" id="f-achat" placeholder="0.00" step="0.01" oninput="updateCalc()"></div>
+    <div class="form-group"><label>Prix affiché (€)</label><input type="number" id="f-affiche" placeholder="0.00" step="0.01" oninput="updateCalc()"></div>
+  </div>
+  <div class="form-grid">
+    <div class="form-group"><label>Date d'achat</label><input type="date" id="f-dateAchat"></div>
+    <div class="form-group"><label>Date de mise en vente</label><input type="date" id="f-dateMiseEnVente" onchange="updateCalc()"></div>
+  </div>
+  <div class="form-group"><label>Plateforme de mise en vente</label>
+    <select id="f-plateformeVente" onchange="updateCalc()">
+      <option value="">— Aucune —</option><option>Vinted</option><option>Facebook Marketplace</option>
+      <option>2ème Main</option><option>Depop</option><option>Vestiaire Collective</option>
+      <option>eBay</option><option>Marktplaats.nl</option><option>Wallapop</option><option>Brocante</option><option>Autre</option>
+    </select>
+  </div>
+  <div class="form-group" id="g-dateVente" style="display:none"><label>Date de vente</label><input type="date" id="f-dateVente"></div>
+  <div class="form-group"><label>Notes</label><input type="text" id="f-notes" placeholder="Remarques, état, détails..."></div>
+  <div class="form-group"><label>Statuts (cumulables)</label></div>
+  <div class="statuts-row">
+    <button type="button" class="statut-toggle laver" id="tog-laver" onclick="toggleStatut('laver')">🧺 À laver</button>
+    <button type="button" class="statut-toggle repasser" id="tog-repasser" onclick="toggleStatut('repasser')">🔥 À repasser</button>
+    <button type="button" class="statut-toggle defaut" id="tog-defaut" onclick="toggleStatut('defaut')">⚠️ Défaut</button>
+  </div>
+  <div class="calc-preview">
+    <div class="calc-title">💰 Simulateur bénéfice</div>
+    <div class="calc-row"><span>Prix affiché</span><span id="c-vente">— €</span></div>
+    <div class="calc-row"><span>Prix achat</span><span id="c-achat">— €</span></div>
+    <div class="calc-row"><span>Frais plateforme</span><span id="c-frais" style="color:var(--rose)">— €</span></div>
+    <div class="calc-row total"><span>Bénéfice net</span><span id="c-benef" class="pos">— €</span></div>
+  </div>
+  <div class="modal-btns">
+    <button class="btn-cancel" onclick="closeAddModal()">Annuler</button>
+    <button class="btn-save" onclick="saveArticle()">Enregistrer</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL VENDRE -->
+<div class="modal-overlay" id="sellModal">
+<div class="modal">
+  <h2>Marquer comme vendu</h2>
+  <div class="sell-info"><strong id="sell-name">—</strong><span id="sell-brand">—</span></div>
+  <div class="form-group"><label>Prix de vente réel (€)</label>
+    <input type="number" id="sell-price" placeholder="0.00" step="0.01" oninput="updateSellCalc()">
+  </div>
+  <div class="form-group"><label>Date de vente</label><input type="date" id="sell-date"></div>
+  <div class="form-group"><label>Vendu sur</label>
+    <select id="sell-platform">
+      <option value="">— Choisir —</option><option>Vinted</option><option>Facebook Marketplace</option>
+      <option>2ème Main</option><option>Depop</option><option>Vestiaire Collective</option>
+      <option>eBay</option><option>Marktplaats.nl</option><option>Wallapop</option><option>Brocante</option><option>Autre</option>
+    </select>
+  </div>
+  <div class="form-group" id="sell-autre-group" style="display:none">
+    <label>Préciser la plateforme</label>
+    <input type="text" id="sell-autre" placeholder="Nom...">
+  </div>
+  <div class="calc-preview">
+    <div class="calc-title">💰 Calcul bénéfice réel</div>
+    <div class="calc-row"><span>Prix vendu</span><span id="sc-vente">— €</span></div>
+    <div class="calc-row"><span>Prix achat</span><span id="sc-achat">— €</span></div>
+    <div class="calc-row"><span>Frais plateforme</span><span id="sc-frais" style="color:var(--rose)">— €</span></div>
+    <div class="calc-row total"><span>Bénéfice net</span><span id="sc-benef">— €</span></div>
+  </div>
+  <div class="modal-btns">
+    <button class="btn-cancel" onclick="closeSellModal()">Annuler</button>
+    <button class="btn-save" onclick="confirmSell()">✅ Confirmer vente</button>
+  </div>
+</div>
+</div>
+
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycby_G1zNM-gXLRZ9v87Wv0j2WM21z8vBNCBRc89H1QN_YIPUG2QzRIzfYhg_I1ADYe3b/exec';
+const COULEURS=['Noir','Blanc','Gris','Bleu','Rouge','Vert','Jaune','Orange','Rose','Violet','Marron','Beige','Multicolore','Autre'];
+
+// ── PWA ──────────────────────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').then(()=>logSync('✅ Service Worker enregistré')).catch(e=>logSync('⚠️ SW: '+e));
+}
+
+// ── DONNÉES ───────────────────────────────────────────────────────────────────
+const DEFAULT_DATA=[
+  {id:"1",marque:"ADIDAS",taille:"L",desc:"Maillot T-shirt col V rouge et blanc",lieu:"Ecosol Renaix",sexe:"Unisexe",cat:"T-shirt",achat:3.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"2",marque:"ADIDAS",taille:"M",desc:"Maillot T-shirt col zip rouge,bleu marine et blanc Clima365",lieu:"Ecosol Renaix",sexe:"Unisexe",cat:"T-shirt",achat:3.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"3",marque:"ADIDAS",taille:"taille 4",desc:"Sweat capuche avec tirette noir et rose fluo",lieu:"Ecosol Renaix",sexe:"Fille",cat:"Sweat",achat:2.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"4",marque:"ADIDAS",taille:"XL",desc:"Maillot T-shirt col V rouge et blanc",lieu:"Ecosol Renaix",sexe:"Unisexe",cat:"T-shirt",achat:3.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"5",marque:"ALEXANDER MASKOVICK",taille:"us W32/ L32",desc:"Jean bleu foncé Vintage Y2K",lieu:"Ecosol Oudenaarde",sexe:"Homme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"6",marque:"BRAX",taille:"us W26 / L32",desc:"Pantalon blanc",lieu:"Ecosol Avelgem",sexe:"Femme",cat:"Pantalon",achat:5.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"7",marque:"BRAX FEEL GOOD",taille:"us W27/ L32",desc:"Jean ̀ stretch bleu foncé Sensation Push Up",lieu:"Ecosol Renaix",sexe:"Femme",cat:"Jean",achat:6.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"8",marque:"BRAX FEEL GOOD",taille:"us W29 / L32",desc:"Pantalon rose clair effet croco",lieu:"Ecosol Avelgem",sexe:"Femme",cat:"Pantalon",achat:5.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"9",marque:"BRAX FEEL GOOD",taille:"",desc:"Jean chino modèle Everest regular fit",lieu:"Ecosol Avelgem",sexe:"Homme",cat:"Jean",achat:6.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"10",marque:"BRAX X & MORE",taille:"us W42/ L34",desc:"Jean bleu foncé modèle Save The Planet /Style Cadiz/Straight Fit",lieu:"Ecosol Renaix",sexe:"Homme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"11",marque:"CHAMPION",taille:"M",desc:"T-shirt col rond blanc stretch Y2K",lieu:"Ecosol Oudenaarde",sexe:"Unisexe",cat:"T-shirt",achat:3.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"12",marque:"COLUMBIA",taille:"M",desc:"Pull polaire rouge avec tirette col",lieu:"Ecosol Oudenaarde",sexe:"Femme",cat:"Pull",achat:5.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"13",marque:"DESIGUAL",taille:"",desc:"",lieu:"2ememain Lies (Heestert)",sexe:"Femme",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"14",marque:"DIESEL - CO",taille:"us W30",desc:"Jean gris clair stretch  Livier-Ankle",lieu:"Ecosol Oudenaarde",sexe:"Femme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"15",marque:"DIESEL - CO",taille:"XL",desc:"Sweat capuche bleu/caramel grand logo face Y2K",lieu:"Ecosol Renaix",sexe:"Unisexe",cat:"Sweat",achat:5.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"16",marque:"ESPRIT",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"17",marque:"ESPRIT",taille:"us W33/ L30",desc:"Jean stretch bleu",lieu:"Ecosol Avelgem",sexe:"Homme",cat:"Jean",achat:5.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"18",marque:"FREAKY NATION",taille:"",desc:"Veste en véritable cuir orange+capuche sweat gris intégré",lieu:"Ecosol Oudenaarde",sexe:"Femme",cat:"Sweat",achat:11.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"19",marque:"GAASTRA",taille:"",desc:"Jean taille basse bleu clair stretch",lieu:"Ecosol Leuze-en-Hainaut",sexe:"Femme",cat:"Jean",achat:4.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-28",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"20",marque:"GARCIA",taille:"us W26 / L32",desc:"Pantalon vert menthe",lieu:"Ecosol Avelgem",sexe:"Femme",cat:"Pantalon",achat:5.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"21",marque:"G-STAR  RAW",taille:"taille 176",desc:"Sweat col rond bleu foncé/blanc",lieu:"Ecosol Oudenaarde",sexe:"Garçon",cat:"Sweat",achat:5.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"22",marque:"G-STAR  RAW",taille:"us W24 / L30",desc:"Jean bleu Lynn Mid Skinny",lieu:"Ecosol Avelgem",sexe:"Femme",cat:"Jean",achat:5.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"23",marque:"G-STAR  RAW",taille:"us W28",desc:"Longue jupe en jeans déchiré Y2K",lieu:"Ecosol Oudenaarde",sexe:"Femme",cat:"Jean",achat:3.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"24",marque:"G-STAR  RAW",taille:"us W29 / L28",desc:"Jean stretch bleu clair",lieu:"Ecosol Avelgem",sexe:"Homme",cat:"Jean",achat:5.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"25",marque:"HOLLISTER",taille:"",desc:"Jean bleu",lieu:"Ecosol Leuze-en-Hainaut",sexe:"Homme",cat:"Jean",achat:4.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-28",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"26",marque:"HUGO BOSS",taille:"fr 52",desc:"Chino gris/kaki",lieu:"Ecosol Avelgem",sexe:"Homme",cat:"Pantalon",achat:5.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"27",marque:"HUGO BOSS",taille:"taille 38",desc:"Chemise à carreaux orange/bleu/blanc Slim Fit",lieu:"Ecosol Renaix",sexe:"Homme",cat:"Chemise",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"28",marque:"JOHN F.GEE",taille:"fr 42",desc:"Jean bleu stretch broderies arrière Y2K Pattes d'éléphants",lieu:"Ecosol Oudenaarde",sexe:"Femme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"29",marque:"JULES",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"30",marque:"KOCCA COLLECTION",taille:"taille 32",desc:"Jean bleu clair avec strass arrière",lieu:"Ecosol Avelgem",sexe:"Femme",cat:"Jean",achat:5.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"31",marque:"LEE COOPER",taille:"us W27/ L32",desc:"Jean bleu foncé stretch, modèle Bosl",lieu:"Ecosol Oudenaarde",sexe:"Femme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"32",marque:"LEE COOPER",taille:"XXL",desc:"T-shirt col rond gris clair,  dessin blanc avant,modèle M Pete",lieu:"Ecosol Oudenaarde",sexe:"Unisexe",cat:"T-shirt",achat:3.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"33",marque:"LEE COOPER",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"34",marque:"LEVI'S",taille:"us 31",desc:"Jean bleu foncé stretch,modèle 722 High Rise Skinny",lieu:"Ecosol Oudenaarde",sexe:"Femme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"35",marque:"LOIS",taille:"us 30",desc:"Jean bleu ciel jambes droit larges taille haute Y2K",lieu:"Ecosol Oudenaarde",sexe:"Femme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"36",marque:"LONGCHAMP LE PLIAGE",taille:"M",desc:"Sac à main Le Pliage camel/beige neuf étiquettes",lieu:"2ememain Sophie (Desselgem)",sexe:"Femme",cat:"Sac",achat:35.0,affiche:85.0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-26",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"37",marque:"MARLBORO CLASSICS",taille:"us W33/ L34",desc:"Pantalon fin beige",lieu:"Ecosol Oudenaarde",sexe:"Homme",cat:"Pantalon",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"38",marque:"MATINIQUE",taille:"",desc:"Chemise bleu foncé/blanc petits carreaux",lieu:"Ecosol Leuze-en-Hainaut",sexe:"Homme",cat:"Chemise",achat:3.5,affiche:18.0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-28",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"39",marque:"NIKE",taille:"M",desc:"Veste training bleu/jaune/blanc NBA Y2K",lieu:"2ememain Nina (Kortrijk)",sexe:"Unisexe",cat:"Veste",achat:10.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"40",marque:"NIKE",taille:"S",desc:"T-shirt col rond moutarde DriFit Y2K",lieu:"Ecosol Oudenaarde",sexe:"Unisexe",cat:"T-shirt",achat:3.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"41",marque:"NIKE",taille:"taille 140/152",desc:"Sweat capuche anthracite logo avant rouge/blanc",lieu:"2ememain Mieke (Vichte)",sexe:"Garçon",cat:"Sweat",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"42",marque:"PEPE JEANS",taille:"us W31 / L34",desc:"Jean bleu foncé Regular waist&fit + Straight Leg Y2K",lieu:"Ecosol Avelgem",sexe:"Homme",cat:"Jean",achat:5.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"43",marque:"PIERRE CARDIN JEANS",taille:"us W32/ L34",desc:"Pantalon fin bleu foncé modèle Lyon",lieu:"Ecosol Oudenaarde",sexe:"Homme",cat:"Pantalon",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"44",marque:"PIERRE CARDIN PARIS",taille:"M",desc:"Pull col V noir avec chemise noir/blanc carreaux intégré",lieu:"Ecosol Renaix",sexe:"Homme",cat:"Pull",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"45",marque:"POLO RALPH LAUREN",taille:"taille 18",desc:"Short chino rose",lieu:"Ecosol Oudenaarde",sexe:"Garçon",cat:"Pantalon",achat:5.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"46",marque:"POLO RALPH LAUREN",taille:"S",desc:"Chemise fine couleur jean foncé, col marron",lieu:"Ecosol Oudenaarde",sexe:"Homme",cat:"Jean",achat:6.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"47",marque:"ROSE PLAYER COLLECTION",taille:"taille 36",desc:"Jean stretch bleu foncé/marron + ceintures doubles Y2K",lieu:"Ecosol Renaix",sexe:"Femme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"48",marque:"SCOTCH & SODA",taille:"us W33/ L32",desc:"Jean bleu clair modele Skim",lieu:"Ecosol Oudenaarde",sexe:"Homme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"49",marque:"STATE OF ART",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"50",marque:"STATE OF ART",taille:"",desc:"Chemise à carreaux rouge/bleu/blanc/violet",lieu:"Ecosol Leuze-en-Hainaut",sexe:"Homme",cat:"Chemise",achat:3.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-28",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"51",marque:"TNF WAY",taille:"us W26 / L34",desc:"Short 3/4 taille basse Y2K",lieu:"Ecosol Avelgem",sexe:"Femme",cat:"Short",achat:4.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"52",marque:"TOM TAILOR",taille:"L",desc:"Sweat capuche bleu/vert chiné poches au ventre",lieu:"Ecosol Renaix",sexe:"Unisexe",cat:"Sweat",achat:5.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"53",marque:"TOM TAILOR",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"54",marque:"TOM TAILOR",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"55",marque:"TOM TAILOR",taille:"",desc:"",lieu:"2ememain Stefaan (Kortrijk)",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"56",marque:"TOMMY HILFIGER",taille:"taille 110",desc:"Jupe rouge avec lignes marine et tirette derrière",lieu:"Ecosol Oudenaarde",sexe:"Fille",cat:"Jupe",achat:5.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"57",marque:"TOMMY HILFIGER",taille:"taille 122",desc:"Chemise à carreaux rouge/marine/blanc",lieu:"Ecosol Oudenaarde",sexe:"Garçon",cat:"Chemise",achat:5.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"58",marque:"TOMMY HILFIGER",taille:"us W31/ L32",desc:"Jean beige légèrement délavé",lieu:"Ecosol Oudenaarde",sexe:"Homme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"59",marque:"TRUSSARDII",taille:"us W28",desc:"Jean bleu foncé dessin arrière Y2K",lieu:"Ecosol Oudenaarde",sexe:"Homme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"60",marque:"VALENTINO JEANS",taille:"taille 34",desc:"Pantalon fin beige",lieu:"Ecosol Avelgem",sexe:"Homme",cat:"Pantalon",achat:5.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"61",marque:"WRANGLER",taille:"us W33/ L32",desc:"jean bleu foncé  Crank Y2K",lieu:"Ecosol Renaix",sexe:"Homme",cat:"Jean",achat:4.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"62",marque:"ZARA COLLECTION",taille:"L",desc:"Veste gilet bleu marine +blanc Vintage Rugby Cup 1967",lieu:"Ecosol Avelgem",sexe:"Unisexe",cat:"Veste",achat:2.9,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-29",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"63",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"64",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"65",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"66",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"67",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"68",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"69",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"70",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"71",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"72",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"73",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"74",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"75",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"76",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"77",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"78",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"79",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"80",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"81",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"82",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"83",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"84",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"85",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"86",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"87",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"88",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"89",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"90",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"91",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"92",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"93",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"94",marque:"",taille:"",desc:"",lieu:"2ememain Lies",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"95",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"96",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"97",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"98",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"99",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"100",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"101",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"102",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"103",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"104",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"105",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"106",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"107",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"108",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"109",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"110",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"111",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"112",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"113",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"114",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"115",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"116",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"117",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"118",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"119",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"120",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"121",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"122",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"123",marque:"",taille:"",desc:"",lieu:"2ememain Mieke",sexe:"",cat:"Autre",achat:0.0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"124",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"125",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"126",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"127",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"128",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"129",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"130",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"131",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"132",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"133",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"134",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"135",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"136",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"137",marque:"",taille:"",desc:"",lieu:"2ememain Stefaan",sexe:"Homme",cat:"Autre",achat:1.5,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-31",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"138",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"139",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"140",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"141",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"142",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"143",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"144",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"145",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"146",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"147",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"148",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"149",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"150",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"151",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"152",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"153",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"154",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"155",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"156",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"157",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"158",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"159",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"160",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"161",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"162",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"163",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"164",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"165",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"166",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"167",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"168",marque:"",taille:"",desc:"",lieu:"Ecosol Oudenaarde",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-05-30",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"169",marque:"CHAMPION",taille:"L",desc:"Short de bain rose fluo",lieu:"Ecosol Waregem",sexe:"Femme",cat:"Short",achat:1.9,affiche:7.0,photo:null,vendu:true,prixVendu:6.0,plateforme:"Vinted",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"2026-06-02",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"170",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"171",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"172",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"173",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"174",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"175",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"176",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"177",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"178",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"179",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"180",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"181",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"182",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"183",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"184",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"185",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"186",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"187",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"188",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"189",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"190",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"191",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"192",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"193",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"194",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"195",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"196",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"197",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"198",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"199",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"200",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"201",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"202",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"203",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"204",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"205",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"206",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"207",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"208",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"209",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"210",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"211",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"212",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"213",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"214",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"215",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"216",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"217",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"218",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"219",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"220",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"221",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"222",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"223",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"224",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"225",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"226",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"227",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"228",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"229",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"230",marque:"",taille:"",desc:"",lieu:"Ecosol Waregem",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"231",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"232",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"233",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"234",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"235",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"236",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"237",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"238",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"239",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"240",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"241",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"242",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"243",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"244",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"245",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"246",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"247",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"248",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"249",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"250",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"251",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"252",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"253",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"254",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"255",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"256",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"257",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"258",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"259",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"260",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"261",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"262",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"263",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"264",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"265",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"266",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"267",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"268",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"269",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"270",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"271",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"272",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"273",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"274",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"275",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"276",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"277",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"278",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"279",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"280",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"281",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"282",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"283",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"284",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"285",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"286",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"287",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"288",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"289",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"290",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"291",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"292",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"293",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"294",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""},
+  {id:"295",marque:"",taille:"",desc:"",lieu:"",sexe:"",cat:"Autre",achat:0,affiche:0,photo:null,vendu:false,prixVendu:0,plateforme:"",laver:false,repasser:false,defaut:false,dateAchat:"2026-06-01",dateMiseEnVente:"",plateformeVente:"",dateVente:"",emplacement:"",couleurPrincipale:"",couleurSecondaire:[],couleurPrecision:"",catAutre:"",sexeAutre:""}
+];
+
+let articles=[];
+let currentTab='stock';
+let editingId=null;
+let sellingId=null;
+let photoData=null;
+let modalStatuts={laver:false,repasser:false,defaut:false};
+let modalColors=[];
+let syncTimer=null;
+let isSaving=false;
+
+// ── JOURNAL ───────────────────────────────────────────────────────────────────
+function logSync(msg){
+  const now=new Date().toLocaleTimeString('fr-BE');
+  const j=document.getElementById('sync-journal');
+  if(!j)return;
+  const l=document.createElement('div');
+  l.textContent='['+now+'] '+msg;
+  j.prepend(l);
+  while(j.children.length>30)j.removeChild(j.lastChild);
+}
+
+// ── NORMALISATION ─────────────────────────────────────────────────────────────
+function norm(a){
+  return{
+    dateAchat:'',dateMiseEnVente:'',plateformeVente:'',dateVente:'',emplacement:'',
+    couleurs:[],couleurPrecision:'',
+    catAutre:'',sexeAutre:'',notes:'',
+    ...a,
+    couleurSecondaire:Array.isArray(a.couleurSecondaire)?a.couleurSecondaire:[]
+  };
+}
+
+// ── COMPRESSION PHOTO ─────────────────────────────────────────────────────────
+function compressImage(file,cb){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const tryCompress=(quality,maxW)=>{
+        let w=img.width,h=img.height;
+        if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+        const c=document.createElement('canvas');
+        c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        const data=c.toDataURL('image/jpeg',quality);
+        // Vérifier taille ~ octets base64
+        const bytes=(data.length-'data:image/jpeg;base64,'.length)*0.75;
+        if(bytes>82000&&quality>0.3){
+          // Réduire encore
+          return tryCompress(quality-0.1,Math.round(maxW*0.9));
+        }
+        return data;
+      };
+      cb(tryCompress(0.7,600));
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── AUTOCOMPLETE ──────────────────────────────────────────────────────────────
+function getACValues(field){
+  const map={marque:a=>a.marque,lieu:a=>a.lieu,emplacement:a=>a.emplacement};
+  if(!map[field])return[];
+  return[...new Set(articles.map(map[field]).filter(Boolean))].sort();
+}
+function showAC(input,field){
+  const list=document.getElementById('ac-'+field);
+  if(!list)return;
+  const q=input.value.toLowerCase().trim();
+  if(!q){list.style.display='none';return;}
+  const matches=getACValues(field).filter(v=>v.toLowerCase().includes(q)&&v.toLowerCase()!==q);
+  if(!matches.length){list.style.display='none';return;}
+  list.innerHTML=matches.slice(0,6).map(v=>'<div class="autocomplete-item" onmousedown="pickAC(event,\''+field+'\',\''+v.replace(/'/g,"\\'")+'\'">'+v+'</div>').join('');
+  list.style.display='block';
+}
+function pickAC(e,field,val){
+  e.preventDefault();
+  const inp=document.getElementById('f-'+field);
+  if(inp)inp.value=val;
+  const list=document.getElementById('ac-'+field);
+  if(list)list.style.display='none';
+}
+document.addEventListener('click',e=>{
+  ['ac-marque','ac-lieu','ac-emplacement'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&!el.contains(e.target))el.style.display='none';
+  });
+});
+
+// ── COULEURS UI ───────────────────────────────────────────────────────────────
+function buildColorChips(){
+  const el=document.getElementById('cp-colors');
+  if(!el)return;
+  el.innerHTML='';
+  COULEURS.forEach(c=>{
+    const span=document.createElement('span');
+    span.className='color-chip'+(modalColors.includes(c)?' selected':'');
+    span.textContent=c;
+    span.addEventListener('click',()=>{
+      const i=modalColors.indexOf(c);
+      if(i>=0)modalColors.splice(i,1);else modalColors.push(c);
+      buildColorChips();
+    });
+    el.appendChild(span);
+  });
+}
+
+// ── CAT / SEXE AUTRE ──────────────────────────────────────────────────────────
+function toggleCatAutre(){document.getElementById('g-cat-autre').style.display=document.getElementById('f-cat').value==='Autre'?'block':'none';}
+function toggleSexeAutre(){document.getElementById('g-sexe-autre').style.display=document.getElementById('f-sexe').value==='Autre'?'block':'none';}
+
+// ── TOAST / SYNC ──────────────────────────────────────────────────────────────
+function showToast(msg,type='ok'){
+  const t=document.getElementById('syncToast');
+  t.textContent=msg;t.className='sync-toast show '+type;
+  setTimeout(()=>t.className='sync-toast',4000);
+}
+function setSyncing(on){document.getElementById('syncBar').className='sync-bar'+(on?' syncing':'');}
+
+async function loadFromCloud(){
+  // 1. Charger local d'abord
+  const local=localStorage.getItem('stockfit-data');
+  if(local){
+    try{
+      const p=JSON.parse(local);
+      if(Array.isArray(p)&&p.length>0){articles=p.map(norm);logSync('📱 Local: '+articles.length+' articles');}
+      else{articles=DEFAULT_DATA.map(norm);logSync('📱 Données par défaut');}
+    }catch(e){articles=DEFAULT_DATA.map(norm);}
+  }else{articles=DEFAULT_DATA.map(norm);logSync('📱 Première utilisation');}
+  populateDropdowns();renderAll();
+
+  // 2. Sync Google
+  setSyncing(true);
+  logSync('☁️ Chargement Google...');
+  try{
+    const ctrl=new AbortController();
+    const to=setTimeout(()=>ctrl.abort(),15000);
+    const r=await fetch(API_URL+'?action=load',{signal:ctrl.signal});
+    clearTimeout(to);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const data=JSON.parse(await r.text());
+    if(Array.isArray(data)&&data.length>0){
+      const localCount=articles.length;
+      const googleCount=data.length;
+      if(googleCount<localCount){
+        // Google est en retard → on pousse le local vers Google
+        logSync('⚠️ Google ('+googleCount+') < Local ('+localCount+') → push local vers Google');
+        showToast('📤 Mise à jour Google ('+localCount+' articles)','ok');
+        await saveToCloud(true);
+      }else{
+        // Google est à jour ou plus récent
+        articles=data.map(a=>norm({
+          ...a,
+          achat:parseFloat(a.achat)||0,affiche:parseFloat(a.affiche)||0,
+          prixVendu:parseFloat(a.prixVendu)||0,
+          vendu:a.vendu==='true'||a.vendu===true,
+          laver:a.laver==='true'||a.laver===true,
+          repasser:a.repasser==='true'||a.repasser===true,
+          defaut:a.defaut==='true'||a.defaut===true,
+          couleurSecondaire:Array.isArray(a.couleurSecondaire)?a.couleurSecondaire:[]
+        }));
+        localStorage.setItem('stockfit-data',JSON.stringify(articles));
+        logSync('✅ Google: '+articles.length+' articles');
+        showToast('☁️ Synchronisé — '+articles.length+' articles','ok');
+      }
+    }else if(Array.isArray(data)&&data.length===0){
+      logSync('⚠️ Google vide → push local');
+      await saveToCloud(true);
+    }else{throw new Error('Format inattendu');}
+  }catch(e){
+    logSync('❌ Google: '+e.message);
+    showToast('📱 Mode hors ligne','err');
+  }
+  setSyncing(false);populateDropdowns();renderAll();
+}
+
+async function saveToCloud(silently=false){
+  if(isSaving){logSync('⏳ Sauvegarde en cours...');return;}
+  isSaving=true;setSyncing(true);
+  localStorage.setItem('stockfit-data',JSON.stringify(articles));
+  logSync('💾 Local: '+articles.length+' articles');
+  try{
+    const r=await fetch(API_URL+'?action=save',{
+      method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(articles)
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const txt=await r.text();
+    if(txt.trim()==='ok'){logSync('✅ Google sauvegardé: '+articles.length);if(!silently)showToast('☁️ Sauvegardé — '+articles.length+' articles','ok');}
+    else throw new Error('Réponse: '+txt);
+  }catch(e){logSync('❌ Save: '+e.message);showToast('⚠️ Local uniquement','err');}
+  isSaving=false;setSyncing(false);
+}
+
+function scheduleSave(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>saveToCloud(),1500);}
+
+async function forceSaveToCloud(){
+  if(!articles.length){showToast('⚠️ Aucun article','err');return;}
+  isSaving=false;await saveToCloud();
+}
+async function forceLoadFromCloud(){
+  if(!confirm('Restaurer depuis Google ? Les modifications locales seront perdues.'))return;
+  setSyncing(true);
+  try{
+    const ctrl=new AbortController();
+    setTimeout(()=>ctrl.abort(),15000);
+    const r=await fetch(API_URL+'?action=load',{signal:ctrl.signal});
+    const data=JSON.parse(await r.text());
+    if(Array.isArray(data)&&data.length>0){
+      articles=data.map(a=>norm({...a,achat:parseFloat(a.achat)||0,affiche:parseFloat(a.affiche)||0,prixVendu:parseFloat(a.prixVendu)||0,vendu:a.vendu==='true'||a.vendu===true,laver:a.laver==='true'||a.laver===true,repasser:a.repasser==='true'||a.repasser===true,defaut:a.defaut==='true'||a.defaut===true,couleurSecondaire:Array.isArray(a.couleurSecondaire)?a.couleurSecondaire:[]}));
+      localStorage.setItem('stockfit-data',JSON.stringify(articles));
+      showToast('🔄 Restauré — '+articles.length+' articles','ok');
+      populateDropdowns();renderAll();
+    }else{showToast('⚠️ Google vide','err');}
+  }catch(e){showToast('❌ Erreur: '+e.message,'err');}
+  setSyncing(false);
+}
+
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(articles,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='stockfit-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  showToast('💾 JSON exporté','ok');
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+const TAB_TITLES={dashboard:'📊 Tableau de bord',stock:'🏷️ En stock',vendu:'✅ Vendus',tout:'📋 Tous les articles',laver:'🧺 À laver',repasser:'🔥 À repasser',defaut:'⚠️ Défaut',republier:'🔄 À republier'};
+const TAB_KEYS=['stock','vendu','dashboard','tout','laver','repasser','defaut','republier'];
+function setTab(t){
+  currentTab=t;
+  document.getElementById('main-title').textContent=TAB_TITLES[t];
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const nb=document.getElementById('nav-'+t);if(nb)nb.classList.add('active');
+  document.querySelectorAll('.mobile-tab').forEach((b,i)=>b.classList.toggle('active',TAB_KEYS[i]===t));
+  renderAll();
+}
+
+// ── REPUBLIER ─────────────────────────────────────────────────────────────────
+function isRepublier(a){
+  if(a.vendu)return false;
+  if(!a.dateMiseEnVente)return false;
+  const d=new Date(a.dateMiseEnVente);
+  if(isNaN(d))return false;
+  return Math.round((Date.now()-d.getTime())/86400000)>=45;
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function updateStats(){
+  const tA=articles.reduce((s,a)=>s+(a.achat||0),0);
+  const tV=articles.filter(a=>a.vendu).reduce((s,a)=>s+(a.prixVendu||0),0);
+  const tB=articles.filter(a=>a.vendu).reduce((s,a)=>s+((a.prixVendu||0)-(a.achat||0)),0);
+  ['stat-achat','m-stat-achat'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=tA.toFixed(2)+' €';});
+  ['stat-vendu','m-stat-vendu'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=tV.toFixed(2)+' €';});
+  ['stat-benef','m-stat-benef'].forEach(id=>{
+    const e=document.getElementById(id);if(!e)return;
+    e.textContent=(tB>0?'+':'')+tB.toFixed(2)+' €';
+    e.style.color=tB>0?'var(--teal)':tB<0?'var(--rose)':'var(--muted)';
+  });
+  document.getElementById('nb-stock').textContent=articles.filter(a=>!a.vendu).length;
+  document.getElementById('nb-vendu').textContent=articles.filter(a=>a.vendu).length;
+  document.getElementById('nb-tout').textContent=articles.length;
+  document.getElementById('nb-laver').textContent=articles.filter(a=>a.laver).length;
+  document.getElementById('nb-repasser').textContent=articles.filter(a=>a.repasser).length;
+  document.getElementById('nb-defaut').textContent=articles.filter(a=>a.defaut).length;
+  document.getElementById('nb-republier').textContent=articles.filter(isRepublier).length;
+}
+
+// ── FILTRES ───────────────────────────────────────────────────────────────────
+function populateDropdowns(){
+  const marques=[...new Set(articles.map(a=>a.marque).filter(Boolean))].sort();
+  const lieux=[...new Set(articles.map(a=>a.lieu).filter(Boolean))].sort();
+  const plateformes=[...new Set(articles.map(a=>a.plateformeVente).filter(Boolean))].sort();
+  const emplacements=[...new Set(articles.map(a=>a.emplacement).filter(Boolean))].sort();
+  const fill=(id,all,vals)=>{
+    const s=document.getElementById(id);if(!s)return;
+    const prev=s.value;
+    s.innerHTML='<option value="">'+all+'</option>';
+    vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});
+    if(vals.includes(prev))s.value=prev;
+  };
+  fill('f-filter-marque','Toutes',marques);
+  fill('f-filter-lieu','Tous',lieux);
+  fill('f-filter-plateforme','Toutes',plateformes);
+  fill('f-filter-emplacement','Tous',emplacements);
+  fill('mf-plateforme','Plateforme — Toutes',plateformes);
+  fill('mf-emplacement','Emplacement — Tous',emplacements);
+}
+
+function filterArticles(){
+  const mob=window.innerWidth<=768;
+  const v=id=>{const e=document.getElementById(id);return e?e.value||'':'';}
+  const q=(document.getElementById('search').value||'').toLowerCase().trim();
+  const fSexe=mob?v('mf-sexe'):v('f-filter-sexe');
+  const fCat=mob?v('mf-cat'):v('f-filter-cat');
+  const fMarque=!mob?v('f-filter-marque'):'';
+  const fLieu=!mob?v('f-filter-lieu'):'';
+  const fMin=!mob?(parseFloat(document.getElementById('f-prix-min').value)||null):null;
+  const fMax=!mob?(parseFloat(document.getElementById('f-prix-max').value)||null):null;
+  const fPlat=mob?v('mf-plateforme'):v('f-filter-plateforme');
+  const fEmp=mob?v('mf-emplacement'):v('f-filter-emplacement');
+  return articles.filter(a=>{
+    if(q){
+      const haystack=[
+        a.marque,a.desc,a.taille,a.cat,a.catAutre,a.sexe,a.sexeAutre,
+        a.lieu,a.emplacement,a.plateformeVente,a.plateforme,
+        a.couleurPrecision,a.notes,
+        ...(Array.isArray(a.couleurs)?a.couleurs:[])
+      ].filter(Boolean).join(' ').toLowerCase();
+      if(!haystack.includes(q))return false;
+    }
+    if(currentTab==='stock'&&a.vendu)return false;
+    if(currentTab==='vendu'&&!a.vendu)return false;
+    if(currentTab==='laver'&&!a.laver)return false;
+    if(currentTab==='repasser'&&!a.repasser)return false;
+    if(currentTab==='defaut'&&!a.defaut)return false;
+    if(currentTab==='republier'&&!isRepublier(a))return false;
+    if(fSexe&&a.sexe!==fSexe)return false;
+    if(fCat&&a.cat!==fCat)return false;
+    if(fMarque&&a.marque!==fMarque)return false;
+    if(fLieu&&a.lieu!==fLieu)return false;
+    if(fMin!==null&&(a.achat||0)<fMin)return false;
+    if(fMax!==null&&(a.achat||0)>fMax)return false;
+    if(fPlat&&a.plateformeVente!==fPlat)return false;
+    if(fEmp&&a.emplacement!==fEmp)return false;
+    return true;
+  });
+}
+
+function resetFilters(){
+  ['f-filter-sexe','f-filter-cat','f-filter-marque','f-filter-lieu','f-filter-plateforme','f-filter-emplacement','mf-sexe','mf-cat','mf-plateforme','mf-emplacement'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['f-prix-min','f-prix-max'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('search').value='';
+  renderAll();
+}
+
+function toggleStatutDirect(id,s){
+  const a=articles.find(x=>String(x.id)===String(id));if(!a)return;
+  a[s]=!a[s];scheduleSave();renderAll();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+const CAT_EMOJI={'Jean':'👖','Pantalon':'👖','T-shirt':'👕','Sweat':'🧥','Pull':'🧶','Chemise':'👔','Veste':'🥼','Short':'🩳','Jupe':'👗','Sac':'👜','Sac à main':'👜','Sac à dos':'🎒','Ceinture':'🪢','Bonnet':'🧢','Casquette':'🧢','Chapeau':'🎩','Écharpe':'🧣','Gants':'🧤','Portefeuille':'👛','Bijou':'💍','Lunettes':'👓','Chaussures':'👟','Autre':'📦'};
+
+function delaiVente(a){
+  if(!a.dateMiseEnVente||!a.dateVente)return null;
+  const d1=new Date(a.dateMiseEnVente),d2=new Date(a.dateVente);
+  if(isNaN(d1)||isNaN(d2))return null;
+  const diff=Math.round((d2-d1)/86400000);
+  return diff>=0?diff:null;
+}
+function todayISO(){return new Date().toISOString().slice(0,10);}
+
+function renderAll(){
+  const mc=document.querySelector('.main-content');
+  if(currentTab==='dashboard'){mc.classList.add('dash');renderDashboard();updateStats();return;}
+  mc.classList.remove('dash');
+  const filtered=filterArticles();
+  document.getElementById('results-count').textContent=filtered.length+' article'+(filtered.length!==1?'s':'')+' affiché'+(filtered.length!==1?'s':'');
+  renderTable(filtered);renderCards(filtered);updateStats();
+}
+
+function renderDashboard(){
+  const stock=articles.filter(a=>!a.vendu);
+  const vendus=articles.filter(a=>a.vendu);
+  const valStock=stock.reduce((s,a)=>s+(a.achat||0),0);
+  const ca=vendus.reduce((s,a)=>s+(a.prixVendu||0),0);
+  const benef=vendus.reduce((s,a)=>s+((a.prixVendu||0)-(a.achat||0)),0);
+  const delais=vendus.map(delaiVente).filter(d=>d!=null);
+  const dm=delais.length?Math.round(delais.reduce((s,d)=>s+d,0)/delais.length):null;
+  const nbR=articles.filter(isRepublier).length;
+  document.getElementById('dashboard-view').innerHTML=`
+    <div class="dash-title">📊 Vue d'ensemble</div>
+    <div class="dash-grid">
+      <div class="dash-card stock"><div class="dc-label">Articles en stock</div><div class="dc-value">${stock.length}</div><div class="dc-sub">non vendus</div></div>
+      <div class="dash-card valeur"><div class="dc-label">Valeur du stock</div><div class="dc-value">${valStock.toFixed(2)} €</div><div class="dc-sub">prix d'achat</div></div>
+      <div class="dash-card vendus"><div class="dc-label">Articles vendus</div><div class="dc-value">${vendus.length}</div><div class="dc-sub">au total</div></div>
+      <div class="dash-card ca"><div class="dc-label">Chiffre d'affaires</div><div class="dc-value">${ca.toFixed(2)} €</div><div class="dc-sub">total encaissé</div></div>
+      <div class="dash-card benef"><div class="dc-label">Bénéfice total</div><div class="dc-value" style="color:${benef>=0?'var(--teal)':'var(--rose)'}">${benef>=0?'+':''}${benef.toFixed(2)} €</div><div class="dc-sub">net</div></div>
+      <div class="dash-card delai"><div class="dc-label">Délai moyen vente</div><div class="dc-value">${dm!=null?dm+' j':'—'}</div><div class="dc-sub">mise en vente → vente</div></div>
+      <div class="dash-card" style="border-color:rgba(167,139,250,0.3)"><div class="dc-label">À republier</div><div class="dc-value" style="color:var(--violet)">${nbR}</div><div class="dc-sub">annonces +45 jours</div></div>
+    </div>`;
+}
+
+function renderTable(filtered){
+  const tbody=document.getElementById('table-body');
+  const isRep=currentTab==='republier';
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="14"><div class="empty-state"><div class="emoji">👗</div><p>Aucun article trouvé</p></div></td></tr>';return;}
+  let html='';
+  if(isRep)html+='<tr><td colspan="14"><div class="republier-banner">🔄 Ces annonces ont plus de 45 jours — republichez-les pour gagner en visibilité.</div></td></tr>';
+  html+=filtered.map(a=>{
+    const benef=a.vendu?(a.prixVendu||0)-(a.achat||0):(a.affiche||0)-(a.achat||0);
+    const ce=CAT_EMOJI[a.cat]||'📦';
+    const ph=a.vendu&&a.plateforme?'<span class="platform-badge">📦 '+a.plateforme+'</span>':(a.plateformeVente?'<span class="platform-badge" style="background:var(--blue-dim);color:var(--blue)">🏷️ '+a.plateformeVente+'</span>':'<span style="color:var(--muted);font-size:11px">—</span>');
+    const dv=delaiVente(a);
+    return '<tr><td><div class="td-brand">'+(a.marque||'—')+'</div><div style="font-size:11px;color:var(--muted)">'+(a.taille||'')+'</div></td>'
+      +'<td class="td-desc" title="'+(a.desc||'')+'">'+(a.desc||'—')+'</td>'
+      +'<td class="td-cat">'+ce+' '+(a.cat||'—')+(a.catAutre?' ('+a.catAutre+')':'')+'</td>'
+      +'<td style="font-size:12px;color:var(--muted)">'+(a.sexe||'—')+(a.sexeAutre?' ('+a.sexeAutre+')':'')+'</td>'
+      +'<td style="font-size:11px;color:var(--muted);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.lieu||'—')+'</td>'
+      +'<td style="font-size:11px;color:var(--text);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(a.emplacement||'')+'">'+(a.emplacement||'—')+'</td>'
+      +'<td class="td-price">'+((a.achat||0).toFixed(2))+' €</td>'
+      +'<td class="td-price">'+(a.vendu?(a.prixVendu||0).toFixed(2)+' €':(a.affiche?(a.affiche.toFixed(2)+' €'):'—'))+'</td>'
+      +'<td class="td-price td-benef '+((a.vendu||a.affiche)?(benef>=0?'pos':'neg'):'')+'">'+((a.vendu||a.affiche)?((benef>=0?'+':'')+benef.toFixed(2)+' €'):'—')+'</td>'
+      +'<td>'+ph+'</td>'
+      +'<td>'+(dv!=null?'<span style="font-weight:600">'+dv+' j</span>':'<span style="color:var(--muted);font-size:11px">—</span>')+'</td>'
+      +'<td><div class="statut-badges">'
+        +'<span class="statut-chip laver '+(a.laver?'':'inactive')+'" data-id="'+a.id+'" data-s="laver" onclick="toggleStatutDirect(this.dataset.id,this.dataset.s)" title="À laver">🧺</span>'
+        +'<span class="statut-chip repasser '+(a.repasser?'':'inactive')+'" data-id="'+a.id+'" data-s="repasser" onclick="toggleStatutDirect(this.dataset.id,this.dataset.s)" title="À repasser">🔥</span>'
+        +'<span class="statut-chip defaut '+(a.defaut?'':'inactive')+'" data-id="'+a.id+'" data-s="defaut" onclick="toggleStatutDirect(this.dataset.id,this.dataset.s)" title="Défaut">⚠️</span>'
+      +'</div></td>'
+      +'<td><div class="sell-toggle-small '+(a.vendu?'sold':'')+'" data-id="'+a.id+'" onclick="quickToggleSell(this.dataset.id)"><div class="toggle-switch-sm"></div><span style="font-size:11px;color:var(--muted)">'+(a.vendu?'✅':'—')+'</span></div></td>'
+      +'<td><div class="row-actions">'
+        +'<button class="row-btn" data-id="'+a.id+'" onclick="openEditModal(this.dataset.id)">✏️</button>'
+        +'<button class="row-btn dup" data-id="'+a.id+'" onclick="duplicateArticle(this.dataset.id)" title="Dupliquer">⧉</button>'
+        +'<button class="row-btn del" data-id="'+a.id+'" onclick="deleteArticle(this.dataset.id)">🗑️</button>'
+      +'</div></td></tr>';
+  }).join('');
+  tbody.innerHTML=html;
+}
+
+function renderCards(filtered){
+  const el=document.getElementById('cards-list');
+  const isRep=currentTab==='republier';
+  if(!filtered.length){el.innerHTML='<div class="empty-state"><div class="emoji">👗</div><p>Aucun article trouvé</p></div>';return;}
+  let html='';
+  if(isRep)html+='<div class="republier-banner">🔄 Annonces +45 jours. Republichez pour plus de visibilité.</div>';
+  html+=filtered.map(a=>{
+    const benef=a.vendu?(a.prixVendu||0)-(a.achat||0):(a.affiche||0)-(a.achat||0);
+    const ce=CAT_EMOJI[a.cat]||'📦';
+    const dv=delaiVente(a);
+    return '<div class="card"><div class="card-inner">'
+      +'<div class="card-photo">'+(a.photo?'<img src="'+a.photo+'">':ce)+'</div>'
+      +'<div class="card-body"><div class="card-top"><div style="min-width:0;flex:1">'
+        +'<div class="card-brand">'+(a.marque||'—')+(a.taille?' · '+a.taille:'')+'</div>'
+        +'<div class="card-desc">'+(a.desc||'Sans description')+'</div>'
+        +'<div class="card-cat">'+ce+' '+(a.cat||'')+(a.catAutre?' ('+a.catAutre+')':'')+' · '+(a.sexe||'')+(a.sexeAutre?' ('+a.sexeAutre+')':'')+'</div>'
+        +(a.emplacement?'<div class="card-cat" style="color:var(--text)">📍 '+a.emplacement+'</div>':'')
+        +((a.couleurs&&a.couleurs.length)?'<div class="card-cat" style="color:var(--muted)">🎨 '+a.couleurs.join(', ')+(a.couleurPrecision?' · '+a.couleurPrecision:'')+'</div>':'')
+      +'</div><span class="badge '+(a.vendu?'vendu':'stock')+'">'+(a.vendu?'✓ Vendu':'En stock')+'</span>'
+      +'</div><div class="card-prices">'
+        +'<div class="price-item"><span>Achat</span><strong>'+((a.achat||0).toFixed(2))+' €</strong></div>'
+        +(a.vendu?'<div class="price-item"><span>Vendu</span><strong>'+((a.prixVendu||0).toFixed(2))+' €</strong></div>':'<div class="price-item"><span>Affiché</span><strong>'+(a.affiche?a.affiche.toFixed(2)+' €':'—')+'</strong></div>')
+        +((a.vendu||a.affiche)?'<div class="price-item '+(benef>=0?'benef':'perte')+'"><span>Bénéfice</span><strong>'+(benef>=0?'+':'')+benef.toFixed(2)+' €</strong></div>':'')
+        +(dv!=null?'<div class="price-item"><span>Délai</span><strong>'+dv+' j</strong></div>':'')
+      +'</div></div></div>'
+      +(a.vendu&&a.plateforme?'<div class="card-platform">📦 Vendu sur <strong>'+a.plateforme+'</strong></div>':(a.plateformeVente?'<div class="card-platform" style="color:var(--blue)">🏷️ En vente sur <strong>'+a.plateformeVente+'</strong></div>':''))
+      +'<div class="card-statuts">'
+        +'<span class="statut-chip laver '+(a.laver?'':'inactive')+'" data-id="'+a.id+'" data-s="laver" onclick="toggleStatutDirect(this.dataset.id,this.dataset.s)">🧺 À laver</span>'
+        +'<span class="statut-chip repasser '+(a.repasser?'':'inactive')+'" data-id="'+a.id+'" data-s="repasser" onclick="toggleStatutDirect(this.dataset.id,this.dataset.s)">🔥 À repasser</span>'
+        +'<span class="statut-chip defaut '+(a.defaut?'':'inactive')+'" data-id="'+a.id+'" data-s="defaut" onclick="toggleStatutDirect(this.dataset.id,this.dataset.s)">⚠️ Défaut</span>'
+      +'</div>'
+      +'<div class="card-sell '+(a.vendu?'sold':'')+'" data-id="'+a.id+'" onclick="quickToggleSell(this.dataset.id)">'
+        +'<span class="sell-label">'+(a.vendu?'✅ Vendu':'🏷️ Marquer comme vendu')+(a.vendu&&a.prixVendu?' <span style="color:var(--muted);font-weight:400;font-size:11px">· '+a.prixVendu.toFixed(2)+' €</span>':'')+'</span>'
+        +'<div class="toggle-switch-sm"></div></div>'
+      +'<div class="card-actions">'
+        +'<button data-id="'+a.id+'" onclick="openEditModal(this.dataset.id)">✏️ Modifier</button>'
+        +'<button class="btn-dup" data-id="'+a.id+'" onclick="duplicateArticle(this.dataset.id)">⧉ Dupliquer</button>'
+        +'<button class="btn-del" data-id="'+a.id+'" onclick="deleteArticle(this.dataset.id)">🗑️ Supprimer</button>'
+      +'</div></div>';
+  }).join('');
+  el.innerHTML=html;
+}
+
+// ── DUPLICATION ───────────────────────────────────────────────────────────────
+function duplicateArticle(id){
+  const a=articles.find(x=>String(x.id)===String(id));if(!a)return;
+  const copy={...a,id:Date.now().toString(),vendu:false,prixVendu:0,plateforme:'',dateVente:''};
+  articles.unshift(copy);
+  scheduleSave();populateDropdowns();renderAll();
+  showToast('⧉ Article dupliqué','ok');
+}
+
+// ── EXPORT PDF ────────────────────────────────────────────────────────────────
+function exportPDF(){
+  const vendus=articles.filter(a=>a.vendu);
+  const tA=articles.reduce((s,a)=>s+(a.achat||0),0);
+  const tV=vendus.reduce((s,a)=>s+(a.prixVendu||0),0);
+  const tB=vendus.reduce((s,a)=>s+((a.prixVendu||0)-(a.achat||0)),0);
+  const annee=new Date().getFullYear();
+  const rows=articles.map((a,i)=>'<tr style="background:'+(i%2===0?'#f9f9f9':'#fff')+'">'
+    +'<td>'+(i+1)+'</td><td>'+(a.marque||'—')+'</td><td>'+(a.desc||'—')+'</td>'
+    +'<td>'+(a.cat||'—')+(a.catAutre?' ('+a.catAutre+')':'')+'</td><td>'+(a.sexe||'—')+'</td>'
+    +'<td>'+(a.taille||'—')+'</td><td>'+(a.lieu||'—')+'</td>'
+    +'<td style="text-align:right">'+((a.achat||0).toFixed(2))+' €</td>'
+    +'<td style="text-align:right;color:'+(a.vendu?'#1a7a60':'#666')+'">'+(a.vendu?((a.prixVendu||0).toFixed(2))+' €':'—')+'</td>'
+    +'<td style="text-align:right;font-weight:600;color:'+(a.vendu?((a.prixVendu||0)-(a.achat||0)>=0?'#1a7a60':'#c0392b'):'#666')+'">'+(a.vendu?(((a.prixVendu||0)-(a.achat||0))>=0?'+':'')+((a.prixVendu||0)-(a.achat||0)).toFixed(2)+' €':'—')+'</td>'
+    +'<td style="text-align:center">'+(a.vendu?'✅ '+(a.plateforme||''):'⬜')+'</td>'
+    +'<td style="text-align:center">'+[a.laver?'🧺':'',a.repasser?'🔥':'',a.defaut?'⚠️':''].filter(Boolean).join(' ')||'—'+'</td>'
+    +'</tr>').join('');
+  const win=window.open('','_blank');
+  win.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>StockFit '+annee+'</title>'
+    +'<style>body{font-family:Arial,sans-serif;font-size:10px;margin:15mm;color:#222}h1{font-size:16px;color:#0f5f4e;border-bottom:2px solid #0f5f4e;padding-bottom:6px;margin-bottom:4px}.sub{color:#666;font-size:11px;margin-bottom:14px}.summary{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}.sum-box{background:#f0f7f5;border:1px solid #b8dcd5;border-radius:6px;padding:8px 12px}.sum-box .lbl{font-size:9px;text-transform:uppercase;color:#666}.sum-box .val{font-size:14px;font-weight:700;color:#0f5f4e;margin-top:1px}table{width:100%;border-collapse:collapse;font-size:9px}th{background:#0f5f4e;color:#fff;padding:6px 5px;text-align:left;white-space:nowrap}td{padding:4px 5px;border-bottom:1px solid #e0e0e0}.footer{margin-top:20px;font-size:9px;color:#999;text-align:center}</style>'
+    +'</head><body><h1>👗 StockFit — '+annee+'</h1>'
+    +'<p class="sub">Exporté le '+new Date().toLocaleDateString('fr-BE')+' · '+articles.length+' articles · '+vendus.length+' vendus</p>'
+    +'<div class="summary">'
+      +'<div class="sum-box"><div class="lbl">Total investi</div><div class="val">'+tA.toFixed(2)+' €</div></div>'
+      +'<div class="sum-box"><div class="lbl">Total encaissé</div><div class="val">'+tV.toFixed(2)+' €</div></div>'
+      +'<div class="sum-box"><div class="lbl">Bénéfice net</div><div class="val">'+(tB>=0?'+':'')+tB.toFixed(2)+' €</div></div>'
+      +'<div class="sum-box"><div class="lbl">En stock</div><div class="val">'+articles.filter(a=>!a.vendu).length+'</div></div>'
+    +'</div>'
+    +'<table><thead><tr><th>#</th><th>Marque</th><th>Description</th><th>Cat.</th><th>Sexe</th><th>Taille</th><th>Lieu</th><th>Achat</th><th>Vendu</th><th>Bénéfice</th><th>Plateforme</th><th>Statuts</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>'
+    +'<div class="footer">StockFit · Usage personnel · '+annee+'</div></body></html>');
+  win.document.close();setTimeout(()=>win.print(),600);
+}
+
+// ── EXPORTS CSV ───────────────────────────────────────────────────────────────
+function dlCSV(filename,rows){
+  const sep=';';
+  const csv=rows.map(r=>r.map(c=>{let s=c==null?'':String(c);if(/[";\n\r]/.test(s))s='"'+s.replace(/"/g,'\"\""')+'"';return s;}).join(sep)).join('\r\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+}
+function num(n){return(Number(n)||0).toFixed(2).replace('.',',');}
+
+function exportComptaCSV(){
+  const header=['Référence','Article','Date achat','Prix achat','Date mise en vente','Plateforme vente','Prix affiché','Prix vendu','Bénéfice net','Date vente','Délai (j)','Statut'];
+  const rows=[header];
+  articles.forEach(a=>{
+    const b=a.vendu?(a.prixVendu||0)-(a.achat||0):'';
+    const dv=delaiVente(a);
+    rows.push([a.id,(a.marque+' '+a.desc).trim(),a.dateAchat||'',num(a.achat),a.dateMiseEnVente||'',a.plateformeVente||'',a.affiche?num(a.affiche):'',a.vendu?num(a.prixVendu):'',b===''?'':num(b),a.dateVente||'',dv!=null?dv:'',a.vendu?'Vendu':'En stock']);
+  });
+  dlCSV('stockfit-compta-'+todayISO()+'.csv',rows);
+  showToast('📊 Compta exportée','ok');
+}
+function exportStockCSV(){
+  const header=['Référence','Marque','Taille','Description','Catégorie','Cat. perso','Sexe','Emplacement','Lieu achat','Date achat','Couleurs','Précision couleur','Prix achat','Date mise en vente','Plateforme vente','Prix affiché','Statut','Date vente','Prix vendu','Plateforme vente réelle','Bénéfice','Délai (j)','À laver','À repasser','Défaut','Notes'];
+  const rows=[header];
+  articles.forEach(a=>{
+    const b=a.vendu?(a.prixVendu||0)-(a.achat||0):'';
+    const dv=delaiVente(a);
+    rows.push([a.id,a.marque||'',a.taille||'',a.desc||'',a.cat||'',a.catAutre||'',a.sexe||'',a.emplacement||'',a.lieu||'',a.dateAchat||'',(a.couleurs||[]).join(', '),a.couleurPrecision||'',num(a.achat),a.dateMiseEnVente||'',a.plateformeVente||'',a.affiche?num(a.affiche):'',a.vendu?'Vendu':'En stock',a.dateVente||'',a.vendu?num(a.prixVendu):'',a.vendu?(a.plateforme||''):'',b===''?'':num(b),dv!=null?dv:'',a.laver?'Oui':'Non',a.repasser?'Oui':'Non',a.defaut?'Oui':'Non',a.notes||'']);
+  });
+  dlCSV('stockfit-stock-'+todayISO()+'.csv',rows);
+  showToast('📦 Stock exporté','ok');
+}
+
+// ── MODAL ADD/EDIT ────────────────────────────────────────────────────────────
+function toggleStatut(s){modalStatuts[s]=!modalStatuts[s];document.getElementById('tog-'+s).classList.toggle('on',modalStatuts[s]);}
+
+function resetModal(){
+  photoData=null;modalStatuts={laver:false,repasser:false,defaut:false};
+  modalColors=[];
+  ['f-marque','f-taille','f-desc','f-lieu','f-achat','f-affiche','f-dateAchat','f-emplacement','f-dateMiseEnVente','f-dateVente','f-cat-autre','f-sexe-autre','f-couleur-prec','f-notes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('f-plateformeVente').value='';
+  document.getElementById('f-cat').value='';
+  document.getElementById('f-sexe').value='Homme';
+  document.getElementById('g-dateVente').style.display='none';
+  document.getElementById('g-cat-autre').style.display='none';
+  document.getElementById('g-sexe-autre').style.display='none';
+  ['laver','repasser','defaut'].forEach(s=>document.getElementById('tog-'+s).classList.remove('on'));
+  const pp=document.getElementById('photoPicker');
+  const img=pp.querySelector('img');if(img)img.remove();
+  pp.querySelector('span').style.display='';pp.querySelector('p').style.display='';
+  buildColorChips();updateCalc();
+}
+
+function openAddModal(){
+  editingId=null;
+  document.getElementById('modal-title').textContent='Nouvel article';
+  resetModal();
+  document.getElementById('addModal').classList.add('open');
+}
+
+function openEditModal(id){
+  const a=articles.find(x=>String(x.id)===String(id));if(!a)return;
+  editingId=id;
+  resetModal();
+  photoData=a.photo||null;
+  modalStatuts={laver:!!a.laver,repasser:!!a.repasser,defaut:!!a.defaut};
+  modalColors=Array.isArray(a.couleurs)?[...a.couleurs]:(a.couleurPrincipale?[a.couleurPrincipale]:[]);
+  document.getElementById('modal-title').textContent='Modifier article';
+  ['marque','taille','desc','lieu','achat','affiche','dateAchat','emplacement','dateMiseEnVente','dateVente','cat-autre','sexe-autre','couleur-prec','notes'].forEach(k=>{
+    const e=document.getElementById('f-'+k);if(e)e.value=a[k.replace('-','')]||a[k]||'';
+  });
+  // Fix field mapping
+  document.getElementById('f-marque').value=a.marque||'';
+  document.getElementById('f-taille').value=a.taille||'';
+  document.getElementById('f-desc').value=a.desc||'';
+  document.getElementById('f-lieu').value=a.lieu||'';
+  document.getElementById('f-achat').value=a.achat||'';
+  document.getElementById('f-affiche').value=a.affiche||'';
+  document.getElementById('f-dateAchat').value=a.dateAchat||'';
+  document.getElementById('f-emplacement').value=a.emplacement||'';
+  document.getElementById('f-dateMiseEnVente').value=a.dateMiseEnVente||'';
+  document.getElementById('f-dateVente').value=a.dateVente||'';
+  document.getElementById('f-cat-autre').value=a.catAutre||'';
+  document.getElementById('f-sexe-autre').value=a.sexeAutre||'';
+  document.getElementById('f-couleur-prec').value=a.couleurPrecision||'';
+  document.getElementById('f-notes').value=a.notes||'';
+  document.getElementById('f-cat').value=a.cat||'';
+  document.getElementById('f-sexe').value=a.sexe||'Homme';
+  document.getElementById('f-plateformeVente').value=a.plateformeVente||'';
+  document.getElementById('g-dateVente').style.display=a.vendu?'block':'none';
+  document.getElementById('g-cat-autre').style.display=a.cat==='Autre'?'block':'none';
+  document.getElementById('g-sexe-autre').style.display=a.sexe==='Autre'?'block':'none';
+  ['laver','repasser','defaut'].forEach(s=>document.getElementById('tog-'+s).classList.toggle('on',!!a[s]));
+  const pp=document.getElementById('photoPicker');
+  let img=pp.querySelector('img');
+  if(a.photo){if(!img){img=document.createElement('img');pp.appendChild(img);}img.src=a.photo;pp.querySelector('span').style.display='none';pp.querySelector('p').style.display='none';}
+  buildColorChips();updateCalc();
+  document.getElementById('addModal').classList.add('open');
+}
+
+function closeAddModal(){document.getElementById('addModal').classList.remove('open');}
+
+function handlePhoto(e){
+  const file=e.target.files[0];if(!file)return;
+  compressImage(file,compressed=>{
+    photoData=compressed;
+    const pp=document.getElementById('photoPicker');
+    let img=pp.querySelector('img');
+    if(!img){img=document.createElement('img');pp.appendChild(img);}
+    img.src=compressed;
+    pp.querySelector('span').style.display='none';
+    pp.querySelector('p').style.display='none';
+  });
+}
+
+// ── FRAIS ─────────────────────────────────────────────────────────────────────
+const FEES={'Vinted':0,'Facebook Marketplace':0,'2ème Main':0,'Marktplaats.nl':0,'Wallapop':0,'Brocante':0,'eBay':0.13,'Depop':0.10,'Vestiaire Collective':0.15,'Autre':0};
+function getFrais(p,prix){const t=FEES[p]??0;let f=prix*t;if(p==='eBay'&&prix>0)f+=0.35;return f;}
+
+function updateCalc(){
+  const achat=parseFloat(document.getElementById('f-achat').value)||0;
+  const affiche=parseFloat(document.getElementById('f-affiche').value)||0;
+  const plat=document.getElementById('f-plateformeVente').value||'';
+  const frais=getFrais(plat,affiche);
+  const taux=FEES[plat]??0;
+  document.getElementById('c-vente').textContent=affiche?affiche.toFixed(2)+' €':'— €';
+  document.getElementById('c-achat').textContent=achat?achat.toFixed(2)+' €':'— €';
+  document.getElementById('c-frais').textContent=plat?(affiche?'-'+frais.toFixed(2)+' € ('+plat+' '+(taux*100).toFixed(0)+'%'+(plat==='eBay'?'+0,35€':'')+')':plat):'Selon plateforme choisie';
+  const b=affiche-achat-(plat?frais:0);
+  const bEl=document.getElementById('c-benef');
+  if(affiche&&achat){bEl.textContent=(b>=0?'+':'')+b.toFixed(2)+' €';bEl.className=b>=0?'pos':'neg';}
+  else{bEl.textContent='— €';bEl.className='pos';}
+}
+
+function saveArticle(){
+  const marque=document.getElementById('f-marque').value.trim();
+  const achat=parseFloat(document.getElementById('f-achat').value)||0;
+  if(!marque&&!achat){alert('Ajoutez au moins une marque ou un prix.');return;}
+  const data={
+    id:editingId||Date.now().toString(),
+    marque:marque.toUpperCase(),
+    taille:document.getElementById('f-taille').value.trim(),
+    desc:document.getElementById('f-desc').value.trim(),
+    lieu:document.getElementById('f-lieu').value.trim(),
+    sexe:document.getElementById('f-sexe').value,
+    sexeAutre:document.getElementById('f-sexe-autre').value.trim(),
+    cat:document.getElementById('f-cat').value,
+    catAutre:document.getElementById('f-cat-autre').value.trim(),
+    achat,affiche:parseFloat(document.getElementById('f-affiche').value)||0,
+    photo:photoData,vendu:false,prixVendu:0,plateforme:'',
+    dateAchat:document.getElementById('f-dateAchat').value||'',
+    emplacement:document.getElementById('f-emplacement').value.trim(),
+    dateMiseEnVente:document.getElementById('f-dateMiseEnVente').value||'',
+    plateformeVente:document.getElementById('f-plateformeVente').value||'',
+    dateVente:'',
+    couleurs:[...modalColors],
+    couleurPrecision:document.getElementById('f-couleur-prec').value.trim(),
+    notes:document.getElementById('f-notes').value.trim(),
+    laver:modalStatuts.laver,repasser:modalStatuts.repasser,defaut:modalStatuts.defaut
+  };
+  if(editingId){
+    const idx=articles.findIndex(a=>String(a.id)===String(editingId));
+    data.vendu=articles[idx].vendu;
+    data.prixVendu=articles[idx].prixVendu;
+    data.plateforme=articles[idx].plateforme||'';
+    data.dateVente=data.vendu?(document.getElementById('f-dateVente').value||articles[idx].dateVente||''):'';
+    articles[idx]=data;
+  }else{articles.unshift(data);}
+  scheduleSave();closeAddModal();populateDropdowns();renderAll();
+}
+
+function deleteArticle(id){
+  if(!confirm('Supprimer cet article ?'))return;
+  articles=articles.filter(a=>String(a.id)!==String(id));
+  scheduleSave();renderAll();
+}
+
+// ── SELL ──────────────────────────────────────────────────────────────────────
+document.getElementById('sell-platform').addEventListener('change',function(){
+  document.getElementById('sell-autre-group').style.display=this.value==='Autre'?'block':'none';
+  updateSellCalc();
+});
+
+function quickToggleSell(id){
+  const a=articles.find(x=>String(x.id)===String(id));if(!a)return;
+  if(a.vendu){a.vendu=false;a.prixVendu=0;a.plateforme='';a.dateVente='';scheduleSave();renderAll();}
+  else openSellModal(id);
+}
+
+function openSellModal(id){
+  sellingId=id;
+  const a=articles.find(x=>String(x.id)===String(id));
+  document.getElementById('sell-name').textContent=(a.marque||'—')+(a.taille?' · '+a.taille:'');
+  document.getElementById('sell-brand').textContent=a.desc||'';
+  document.getElementById('sell-price').value=a.affiche||'';
+  document.getElementById('sell-date').value=a.dateVente||todayISO();
+  document.getElementById('sell-platform').value='';
+  document.getElementById('sell-autre').value='';
+  document.getElementById('sell-autre-group').style.display='none';
+  updateSellCalc();
+  document.getElementById('sellModal').classList.add('open');
+}
+function closeSellModal(){document.getElementById('sellModal').classList.remove('open');}
+
+function updateSellCalc(){
+  const a=articles.find(x=>String(x.id)===String(sellingId));if(!a)return;
+  const prix=parseFloat(document.getElementById('sell-price').value)||0;
+  const plat=document.getElementById('sell-platform').value||'';
+  const frais=getFrais(plat,prix);
+  const taux=FEES[plat]??0;
+  document.getElementById('sc-vente').textContent=prix?prix.toFixed(2)+' €':'— €';
+  document.getElementById('sc-achat').textContent=(a.achat||0).toFixed(2)+' €';
+  document.getElementById('sc-frais').textContent=frais?'-'+frais.toFixed(2)+' € ('+plat+' '+(taux*100).toFixed(0)+'%'+(plat==='eBay'?'+0,35€':'')+')':plat?'0,00 €':'— €';
+  const b=prix-(a.achat||0)-frais;
+  const bEl=document.getElementById('sc-benef');
+  if(prix){bEl.textContent=(b>=0?'+':'')+b.toFixed(2)+' €';bEl.className=b>=0?'pos':'neg';}
+  else{bEl.textContent='— €';bEl.className='pos';}
+}
+
+function confirmSell(){
+  const prix=parseFloat(document.getElementById('sell-price').value);
+  if(!prix){alert('Entrez le prix de vente.');return;}
+  let plat=document.getElementById('sell-platform').value;
+  if(plat==='Autre')plat=document.getElementById('sell-autre').value.trim()||'Autre';
+  const a=articles.find(x=>String(x.id)===String(sellingId));
+  a.vendu=true;a.prixVendu=prix;a.plateforme=plat;
+  a.dateVente=document.getElementById('sell-date').value||todayISO();
+  scheduleSave();closeSellModal();renderAll();
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el){closeAddModal();closeSellModal();}});
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadFromCloud();
+</script>
+</body>
+</html>
