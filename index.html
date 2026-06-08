@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
 <title>StockFit</title>
 
 <!-- PWA Manifest -->
@@ -439,8 +439,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   <h2 id="modal-title">Nouvel article</h2>
   <label class="photo-picker" id="photoPicker" onclick="document.getElementById('photoInput').click()">
     <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)">
-<input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handlePhoto(event)" style="display:none">
-<button onclick="event.stopPropagation();document.getElementById('cameraInput').click()" type="button" style="position:absolute;top:6px;right:6px;background:var(--teal);border:none;border-radius:8px;color:#000;font-size:11px;padding:4px 8px;cursor:pointer;z-index:10;font-weight:700">📷 Caméra</button>
     <span>📷</span><p>Ajouter une photo</p>
   </label>
   <div class="form-grid">
@@ -1447,6 +1445,11 @@ function exportPDF(){
 
 <script>
 // LIGHTBOX
+function openLightbox(src){
+  if(!src)return;
+  document.getElementById('lightbox-img').src=src;
+  document.getElementById('lightbox').classList.add('open');
+}
 function closeLightbox(){
   document.getElementById('lightbox').classList.remove('open');
 }
@@ -1473,6 +1476,7 @@ if(savedZoom){currentZoom=parseFloat(savedZoom);document.body.style.zoom=current
   <img id="lightbox-img" src="" alt="">
 </div>
 
+</body></html>');
   win.document.close();setTimeout(()=>win.print(),600);
 }
 
