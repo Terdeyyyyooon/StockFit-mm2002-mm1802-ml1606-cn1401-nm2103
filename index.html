@@ -1032,13 +1032,14 @@ async function saveToCloud(silently=false){
   localStorage.setItem('stockfit-data',JSON.stringify(articles));
   logSync('💾 Local: '+articles.length+' articles');
   try{
-    const payload=encodeURIComponent(JSON.stringify(articles));
-    const r=await fetch(API_URL+'?action=save&contents='+payload,{
-      method:'GET'
+    const r=await fetch(API_URL+'?action=save',{
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify(articles)
     });
     if(!r.ok)throw new Error('HTTP '+r.status);
     const txt=await r.text();
-    if(txt.trim()==='ok'||txt.trim()===''||txt.trim()==='[]'||txt.includes('ok')){logSync('✅ Google sauvegardé: '+articles.length);if(!silently)showToast('☁️ Sauvegardé — '+articles.length+' articles','ok');}
+    if(txt.trim()==='ok'){logSync('✅ Google sauvegardé: '+articles.length);if(!silently)showToast('☁️ Sauvegardé — '+articles.length+' articles','ok');}
     else throw new Error('Réponse: '+txt);
   }catch(e){logSync('❌ Save: '+e.message);showToast('⚠️ Local uniquement','err');}
   isSaving=false;setSyncing(false);
@@ -1475,9 +1476,15 @@ async function uploadPhotoToDrive(articleId, base64Data){
   if(!base64Data||!base64Data.startsWith('data:'))return null;
   try{
     const mime=base64Data.split(';')[0].split(':')[1]||'image/jpeg';
-    const url=API_URL+'?action=uploadPhoto&id='+articleId+'&mime='+encodeURIComponent(mime)+'&data='+encodeURIComponent(base64Data);
-    const r=await fetch(url);
+    logSync('📤 Upload photo vers Drive...');
+    const r=await fetch(API_URL+'?action=uploadPhoto',{
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({id:articleId,photo:base64Data,mime:mime})
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
     const json=await r.json();
+    logSync('✅ Photo Drive: '+articleId);
     return json.url||null;
   }catch(err){
     logSync('⚠️ Photo non uploadée: '+err.message);
