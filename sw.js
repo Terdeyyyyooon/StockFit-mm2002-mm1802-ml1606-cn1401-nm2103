@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stockfit-v6';
+const CACHE_NAME = 'stockfit-v7';
 const ASSETS = [
   './',
   './index.html',
